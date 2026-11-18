@@ -1,18 +1,19 @@
 # 1. SLX Viewer
 
-**Windows executable downloads:** [Build downloads](https://github.com/Ala-Ismail/slx_viewer/actions/workflows/windows.yml) | [Versioned releases](https://github.com/Ala-Ismail/slx_viewer/releases)
+**Windows x64** · [Download latest release](https://github.com/Ala-Ismail/slx_viewer/releases/latest/download/slx_viewer-windows-x64.zip) · [Release notes and checksums](https://github.com/Ala-Ismail/slx_viewer/releases) · [GitHub Actions builds](https://github.com/Ala-Ismail/slx_viewer/actions/workflows/windows.yml)
 
-For a build download, select a successful run and download **slx_viewer-windows-x64** under **Artifacts**. Extract the artifact and the ZIP inside it, then run `slx_viewer_desktop.exe`.
-
-For the latest tagged release, use [Download the Windows x64 executable package](https://github.com/Ala-Ismail/slx_viewer/releases/latest/download/slx_viewer-windows-x64.zip).
-
-Use the release page for a direct download of a versioned package and its SHA-256 checksum.
+Extract the release ZIP, then run `slx_viewer_desktop.exe`. Use **File > Open…** or drop a local `.slx` file onto the window. The ZIP also includes `slx_viewer.exe` for command-line summaries.
 
 ## 1.1 Overview
 
-This project is a distilled implementation of an SLX viewer. It is an independent project and is not affiliated with MATLAB or MathWorks.
+SLX Viewer is an independent, open-source Windows x64 app for inspecting saved Simulink `.slx` files offline, without a MATLAB or Simulink installation. Browse saved diagrams and supported Stateflow charts in read-only mode. The inspector displays stored expressions as text. [MIT License](LICENSE)
 
-SLX Viewer is a Windows x64 desktop app for viewing saved Simulink `.slx` models. You can open a model offline without MATLAB or Simulink. The loader opens the input read-only and preserves stored expressions as text.
+### 1.1.1 What’s new in v0.2.0
+
+- A charcoal interface with a neutral grey canvas, compact model hierarchy, and a new folded-ribbon logo.
+- Model-wide block search by name or system path. Select a result to reveal the block and its stored properties.
+- Port-aware wire alignment for rotated and mirrored blocks, with saved block positions and branch junctions preserved.
+- A 1.8-second startup screen with copyright and license notices. **Buy us a coffee** is available there and in **Help > About…**.
 
 
 ## 1.2 Build on Windows
@@ -27,8 +28,6 @@ The desktop build produces `target\release\slx_viewer_desktop.exe`. You can copy
 
 If a running viewer has the release executable locked, use `cargo build --release --locked --target-dir target/stateflow` to build the binaries under `target\stateflow\release`.
 
-The tested navigation and status-bar layout build is available at `target\release\slx_viewer_desktop.exe`.
-
 ### 1.2.1 Dependency notices
 
 Dependency and font notices are embedded in the executable and shown under **Help > License…**. After updating `Cargo.lock`, regenerate them with `python tools/update_notices.py` before building. The generator uses cached dependency sources and the upstream license copies in `notices`.
@@ -39,11 +38,12 @@ The **Windows build** workflow runs on pushes to `main`, pull requests, version 
 
 Open the repository's **Actions > Windows build**, select a successful run, and download **slx_viewer-windows-x64** under **Artifacts**. Extract the downloaded artifact, then extract `slx_viewer-windows-x64.zip` and launch `slx_viewer_desktop.exe`. The package also contains the command-line executable, README, license, third-party notices, and a separate ZIP checksum. Artifacts are retained for 14 days.
 
-For a persistent versioned download, push a version tag after updating the Cargo package version and lockfile as appropriate:
+To publish a release, commit the new version in `Cargo.toml` and `Cargo.lock` on `main`. Create an annotated tag matching that version and push the branch and tag together. Substitute the version you are releasing for `X.Y.Z`.
 
 ```powershell
-git tag -a v0.2.0 -m "SLX Viewer v0.2.0"
-git push origin v0.2.0
+$tag = 'vX.Y.Z'
+git tag -a $tag -m "SLX Viewer $tag"
+git push --atomic origin main "refs/tags/$tag"
 ```
 
 A successful tagged build creates a GitHub Release with the ZIP and SHA-256 checksum under **Releases > Assets**. The release job uses GitHub's automatic token with permission to write repository contents. The workflow does not perform native GUI or clean-machine acceptance testing.
@@ -60,6 +60,8 @@ Double-click `slx_viewer_desktop.exe`. The startup screen shows the SLX Viewer l
 Use **Fit**, **−**, the zoom percentage, and **+** at the bottom right to control the current diagram. Clicking the percentage resets zoom to 100%. **Ctrl+wheel** zooms around the pointer. Long status messages truncate to keep these controls visible; hover over the message to read it in full.
 
 Pan with the middle mouse button or by dragging empty canvas space. Click a block to inspect its saved properties. Open a subsystem from the hierarchy or by double-clicking the block. The **↑** toolbar button, **Esc**, or **Alt+Up** opens the parent. The **←** button or **Alt+Left** returns to the previously viewed system. Hover over either icon for its name and shortcut.
+
+Press **Ctrl+K** to search block names or system paths. Click a result or press **Enter** for the first match. The viewer selects the block in its diagram and shows its properties.
 
 ### 1.3.1 Command-line summary
 
@@ -98,7 +100,6 @@ Use **Alt+F** or **Alt+H**, arrow keys, and **Enter** to operate the menus. **Es
 
 - The loader discovers the block diagram and release metadata through package relationships, with fallbacks to the conventional block diagram and release metadata part names. Systems can be embedded in the diagram or resolved through the owning part's system relationships.
 - The model retains system-local block identifiers, direct stored properties, saved block bounds, orientation and mirroring flags, declared port counts, ports observed in connections, annotations, and signal branch offsets. The canvas aligns wire ends with the estimated port edges and preserves saved block positions and branch junctions. Wire-end detours around endpoint blocks remain approximate. Specialized block icons are pending.
-- **Ctrl+K** focuses the block search box. Search by name or system path and select a result to reveal the block and inspect its stored properties. Press **Enter** to select the first result.
 - Missing child parts and unresolved endpoints produce diagnostics. External models, model workspaces, defaults, specialized block semantics, and nested parameter structures are outside the current parser coverage. Only the fixtures listed in the [fixture manifest](tests/fixtures/README.md) have been exercised.
 - The loader opens the file read-only and processes selected ZIP parts in memory. Defaults cap the compressed file at 128 MiB, the indexed entry count at 4,096, declared and consumed expanded data at 128 MiB, a read part at 16 MiB, and XML at 96 levels and 500,000 elements. System hierarchy has a separate depth cap of 32. The ZIP dependency builds its index before the entry-count check and coalesces duplicate entry names, which limits what that check covers.
 
