@@ -15,7 +15,7 @@ Use a single page with anchor navigation for **Features**, **Download**, and **O
 - **Heading** — SLX Viewer
 - **Description** — Open and inspect saved Simulink `.slx` models on Windows. Browse diagrams, follow signals, and read stored block properties offline.
 - **Supporting line** — Open source under the MIT License. The viewer runs without a MATLAB or Simulink installation.
-- **Visual** — Show a three-image slideshow covering an automotive engine blueprint with a mock SLX control diagram, a realistic wind turbine with a mock model and equations, and a realistic race car with a mock Stateflow-style diagram.
+- **Visual** — Show a three-image slideshow covering an automotive engine blueprint with a mock SLX control diagram, a realistic wind turbine close-up with an integrated blueprint cutaway, and a realistic race car with a mock Stateflow-style diagram.
 
 ### 1.2.2 What you can inspect
 
@@ -68,7 +68,7 @@ Use a readable sans-serif stack, 16–18 px body text, and consistent spacing ac
 | Order | Asset | Content |
 | --- | --- | --- |
 | 1 | `/assets/hero-engine.webp` | Automotive engine blueprint and mock SLX control diagram |
-| 2 | `/assets/hero-wind.webp` | Realistic wind turbine, mock model, and wind power equations |
+| 2 | `/assets/hero-wind.webp` | Realistic wind turbine close-up with a blueprint cutaway of the nacelle |
 | 3 | `/assets/hero-race.webp` | Race car on a circuit with a mock Stateflow-style Brake, Turn In, and Accelerate loop |
 
 Use a consistent 3:2 crop and label the example diagrams as mock models. Advance every 6.5 seconds and offer Pause, Previous, and Next buttons. With reduced motion enabled, start paused. Pause while the pointer is over the slide area and stop automatic playback when visitors navigate the slides manually.
