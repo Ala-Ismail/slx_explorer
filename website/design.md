@@ -8,7 +8,7 @@ The primary audience is engineers and reviewers who receive a saved Simulink mod
 
 ## 1.2 Page structure and copy
 
-Use a single page with anchor navigation for **Features**, **Download**, and **Open Source**. Put **Buy us a coffee** in the header, near the download, in the support section, and in the footer. Use **Download for Windows x64** as the primary action and **View source on GitHub** as the hero’s secondary action.
+Use a single page with anchor navigation for **Features**, **Download**, and **Open Source**. Put **Buy us a coffee** in the header, near the download, and in the footer. Use **Download for Windows x64** as the primary action and **View source on GitHub** as the hero’s secondary action.
 
 ### 1.2.1 Introduction
 
