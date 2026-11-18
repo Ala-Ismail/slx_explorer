@@ -51,7 +51,7 @@ Identify the project as MIT-licensed and include **© 2026 Lambda Technologies P
 
 Use **Buy us coffee** with a simple coffee-cup icon next to the visible label. Link to the same PayPal page as the desktop app. Keep the support action separate from the free download.
 
-Footer copy may also identify SLX Viewer as an independent project and direct readers to the repository for fixture attribution and third-party notices.
+State in the footer that SLX Viewer is a clean-room implementation developed independently of MathWorks, the maker of MATLAB and Simulink. Link to the third-party notices.
 
 ### 1.2.5 Common questions
 

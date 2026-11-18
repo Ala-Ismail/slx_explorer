@@ -8,6 +8,8 @@ The Windows executables are unsigned. [Verify the ZIP checksum and read about Wi
 
 SLX Viewer is an independent, open-source Windows x64 app for inspecting saved Simulink `.slx` files offline, without a MATLAB or Simulink installation. Browse saved diagrams and supported Stateflow charts in read-only mode. The inspector displays stored expressions as text. [MIT License](LICENSE)
 
+SLX Viewer is a clean-room implementation developed independently of MathWorks, the maker of MATLAB and Simulink.
+
 ### 1.1.1 What’s new in v0.2.0
 
 - A charcoal interface with a neutral grey canvas, compact model hierarchy, and a new folded-ribbon logo.

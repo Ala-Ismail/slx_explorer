@@ -10,6 +10,8 @@ Start with Windows x64. Keep parsing and rendering portable so Linux and macOS b
 
 The goal is to inspect saved diagrams, hierarchy, connections, and stored parameters. It is not to reproduce every behavior or visual detail of the Simulink editor.
 
+SLX Viewer is a clean-room implementation developed independently of MathWorks, the maker of MATLAB and Simulink.
+
 ## 1.2 Why Rust
 
 Rust is the selected implementation language because deployment footprint, predictable resource use, and a self-contained desktop experience are priorities. This is an engineering judgment; actual installer size, startup time, and memory use must be measured on a release build.
