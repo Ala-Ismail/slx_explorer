@@ -8,13 +8,13 @@ The primary audience is engineers and reviewers who receive a saved Simulink mod
 
 ## 1.2 Page structure and copy
 
-Use a single page with anchor navigation for **Features**, **Download**, and **Open Source**. Put **Buy us a coffee** in the header, near the download, and in the footer. Use **Download for Windows x64** as the primary action and **View source on GitHub** as the hero’s secondary action.
+Use a single page with anchor navigation for **Features**, **Download**, and **Open Source**. Put **Buy us coffee** in the header, near the download, and in the footer. Use **Download for Windows x64** as the primary action and **View source on GitHub** as the hero’s secondary action.
 
 ### 1.2.1 Introduction
 
 - **Heading** — SLX Viewer
-- **Description** — Open and inspect saved Simulink `.slx` models on Windows. Browse diagrams, follow signals, and read stored block properties offline.
-- **Supporting line** — Open source under the MIT License. The viewer runs without a MATLAB or Simulink installation.
+- **Description** — An open-source Windows app for inspecting saved Simulink models.
+- **Supporting line** — Browse diagrams, follow signals, and read stored block properties offline. Released under the MIT License.
 - **Visual** — Show a three-image slideshow covering an automotive engine blueprint with a mock SLX control diagram, a realistic wind turbine close-up with an integrated blueprint cutaway, and a realistic race car with a mock Stateflow-style diagram.
 
 ### 1.2.2 What you can inspect
@@ -49,7 +49,7 @@ Place the coffee link below the download actions. Use the message “Like SLX Vi
 
 Identify the project as MIT-licensed and include **© 2026 Lambda Technologies Pty Ltd** in the footer. Explain that contributions and reproducible bug reports are welcome. Link to source, license, and issues. Ask issue reporters for the app version, Windows version, and a redistributable example when available.
 
-Use **Buy us a coffee** with a simple coffee-cup icon next to the visible label. Link to the same PayPal page as the desktop app. Keep the support action separate from the free download.
+Use **Buy us coffee** with a simple coffee-cup icon next to the visible label. Link to the same PayPal page as the desktop app. Keep the support action separate from the free download.
 
 Footer copy may also identify SLX Viewer as an independent project and direct readers to the repository for fixture attribution and third-party notices.
 
@@ -87,7 +87,7 @@ Use a consistent 3:2 crop and label the example diagrams as mock models. Advance
 | License | [MIT License](https://github.com/Ala-Ismail/slx_viewer/blob/main/LICENSE) |
 | Compatibility | [Supported layouts and limits](https://github.com/Ala-Ismail/slx_viewer#14-supported-layouts-and-limits) |
 | Report an issue | [GitHub Issues](https://github.com/Ala-Ismail/slx_viewer/issues) |
-| Buy us a coffee | [PayPal support](https://www.paypal.com/paypalme/12dazapp) |
+| Buy us coffee | [PayPal support](https://www.paypal.com/paypalme/12dazapp) |
 
 ## 1.5 Vercel deployment
 
