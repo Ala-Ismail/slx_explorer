@@ -8,14 +8,14 @@ The primary audience is engineers and reviewers who receive a saved Simulink mod
 
 ## 1.2 Page structure and copy
 
-Use a single page with anchor navigation for **Features**, **Download**, and **Open Source**. Put **Buy us a coffee** in the support section and footer. Use **Download for Windows x64** as the primary action and **View source on GitHub** as the secondary action.
+Use a single page with anchor navigation for **Features**, **Download**, and **Open Source**. Put **Buy us a coffee** in the header, near the download, in the support section, and in the footer. Use **Download for Windows x64** as the primary action and **View source on GitHub** as the hero’s secondary action.
 
 ### 1.2.1 Introduction
 
 - **Heading** — SLX Viewer
 - **Description** — Open and inspect saved Simulink `.slx` models on Windows. Browse diagrams, follow signals, and read stored block properties offline.
 - **Supporting line** — Open source under the MIT License. The viewer runs without a MATLAB or Simulink installation.
-- **Visual** — Use the [hero collage](public/assets/slx-viewer-hero.webp) of a controls engineer reviewing the motor model alongside the SLX Viewer interface. The scene is generated, and the interface is based on a Windows capture of the app. Credit the illustrated motor model to Alpaslan Kilic. [Fixture manifest](../tests/fixtures/README.md)
+- **Visual** — Show a three-image slideshow covering an automotive engine blueprint with a mock SLX control diagram, a realistic wind turbine with a mock model and equations, and a realistic race car with a mock Stateflow-style diagram.
 
 ### 1.2.2 What you can inspect
 
@@ -28,6 +28,8 @@ Use a single page with anchor navigation for **Features**, **Download**, and **O
 
 Keep compatibility details near the feature list. Coverage is fixture-based. Some specialized blocks, external references, and Stateflow constructs have limited support. Link to the repository’s supported layouts and limits before making any broader compatibility claims.
 
+Follow the feature list with a [Windows app capture](public/assets/pid-control-capture.webp) of an illustrative PID speed-control model. Show the three parallel paths, the motor feedback loop, and the selected proportional gain with the stored value `Kp`. Provide a full-size image link alongside the caption.
+
 ### 1.2.3 Download and get started
 
 Label the package **Windows x64 · ZIP**. Use the stable **Download for Windows x64** link so users receive the latest published package without a site update. Provide a **Release notes and SHA-256** link to the GitHub release page. GitHub Actions builds and publishes the ZIP and checksum.
@@ -37,6 +39,8 @@ Label the package **Windows x64 · ZIP**. Use the stable **Download for Windows 
 3. Choose **File > Open…** or drop a local `.slx` file into the window.
 
 Mention `slx_viewer.exe` as the bundled command-line tool for printing a summary of a local model. Use the GitHub release page as the source of truth for any displayed version number, release date, or package size.
+
+Place the coffee link below the download actions. Use the message “Like SLX Viewer? You can support its development. The download is free and support is optional.”
 
 ### 1.2.4 Open source and support
 
@@ -55,16 +59,19 @@ Footer copy may also identify SLX Viewer as an independent project and direct re
 
 ## 1.3 Visual and accessibility direction
 
-Use the desktop app’s folded orange ribbon mark, charcoal surfaces, a neutral grey diagram area, and restrained blue for focus and interactive highlights. Use the orange accent for the main download action. On desktop, place the hero copy beside the collage. On narrow screens, stack them with the download action above the image. Use an unedited app capture for any feature walkthrough that needs legible interface text.
+Use the desktop app’s folded orange ribbon mark, charcoal surfaces, a neutral grey diagram area, and restrained blue for focus and interactive highlights. Use the orange accent for the main download action. On desktop, place the hero copy beside the slideshow. On narrow screens, stack them with the download action above the first image. Use an unedited app capture for any feature walkthrough that needs legible interface text.
 
-Use a readable sans-serif stack, 16–18 px body text, and consistent spacing across sections. Give buttons enough room for touch and keyboard use. Provide descriptive image alt text, visible focus outlines, a single page heading, and sufficient text contrast. The page and its download links should work with JavaScript disabled. Avoid decorative motion on the first version.
+Use a readable sans-serif stack, 16–18 px body text, and consistent spacing across sections. Give buttons enough room for touch and keyboard use. Provide descriptive image alt text, visible focus outlines, a single page heading, and sufficient text contrast. With JavaScript disabled, keep the first image and all page links available.
 
-### 1.3.1 Hero image asset
+### 1.3.1 Hero slideshow
 
-- **Public path** — `/assets/slx-viewer-hero.webp`
-- **Dimensions** — 1536 × 1024 px. Preserve the 3:2 crop to keep the engineer, diagram, and properties visible.
-- **Alt text** — A controls engineer at a desk beside SLX Viewer displaying a motor block diagram and the selected block’s properties.
-- **Suggested caption** — Illustration of SLX Viewer with the DC motor speed control model by Alpaslan Kilic.
+| Order | Asset | Content |
+| --- | --- | --- |
+| 1 | `/assets/hero-engine.webp` | Automotive engine blueprint and mock SLX control diagram |
+| 2 | `/assets/hero-wind.webp` | Realistic wind turbine, mock model, and wind power equations |
+| 3 | `/assets/hero-race.webp` | Race car on a circuit with a mock Stateflow-style Brake, Turn In, and Accelerate loop |
+
+Use a consistent 3:2 crop and label the example diagrams as mock models. Advance every 6.5 seconds and offer Pause, Previous, and Next buttons. With reduced motion enabled, start paused. Pause while the pointer is over the slide area and stop automatic playback when visitors navigate the slides manually.
 
 ## 1.4 Link destinations
 
@@ -92,12 +99,12 @@ The site is static HTML and CSS. Its page, stylesheet, favicon, and visual asset
 | Output Directory | `public` |
 | Production branch | `main` |
 
-Test the site on a Vercel preview deployment before promoting it. Once the production domain is available, give `og:image` in `public/index.html` the full HTTPS address of the hero image and verify it with a link preview. Keep binaries and checksums in GitHub Releases. Use the stable release link so app releases and site deployments can proceed independently. [Vercel build settings](https://vercel.com/docs/builds/configure-a-build)
+Test the site on a Vercel preview deployment before promoting it. The Open Graph image uses the full HTTPS address on `slxviewer-website.vercel.app`. Verify the image and link preview after deploying. Keep binaries and checksums in GitHub Releases. Use the stable release link so app releases and site deployments can proceed independently. [Vercel build settings](https://vercel.com/docs/builds/configure-a-build)
 
 ## 1.6 Acceptance
 
 - The first screen makes the app’s purpose, Windows x64 support, and download action clear. The layout is usable at 360, 768, and 1440 px widths.
 - The download link resolves to the latest published ZIP, and the release page provides a matching SHA-256 file. The instructions match the filenames in the ZIP.
 - Source, license, compatibility, issues, and PayPal links resolve to their intended destinations. Confirm the PayPal destination without submitting a payment.
-- Verify keyboard navigation, visible focus, contrast, responsive screenshot legibility, and page access without JavaScript.
+- Verify keyboard navigation, visible focus, contrast, responsive image legibility, and page access without JavaScript. Check the slideshow’s wrapping order, pause control, and reduced-motion behavior.
 - Vercel serves the home page and static assets from `website/public/`. Metadata includes the site title, description, favicon, and a share image.
