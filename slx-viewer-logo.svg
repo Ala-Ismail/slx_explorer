@@ -1,0 +1,29 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="128" height="128" viewBox="0 0 128 128" role="img" aria-labelledby="title desc">
+  <title id="title">SLX Viewer</title>
+  <desc id="desc">Two folded orange ribbons interlock over a charcoal-to-slate gradient.</desc>
+  <defs>
+    <radialGradient id="tile" cx="23%" cy="13%" r="105%">
+      <stop stop-color="#465168"/>
+      <stop offset=".54" stop-color="#272F3E"/>
+      <stop offset="1" stop-color="#141820"/>
+    </radialGradient>
+    <linearGradient id="edge" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop stop-color="#687487"/>
+      <stop offset="1" stop-color="#242A35"/>
+    </linearGradient>
+    <linearGradient id="front" x1="84%" y1="8%" x2="9%" y2="94%">
+      <stop stop-color="#FFD18B"/>
+      <stop offset="1" stop-color="#FF9D43"/>
+    </linearGradient>
+    <linearGradient id="back" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop stop-color="#F5A55D"/>
+      <stop offset="1" stop-color="#CE5C2E"/>
+    </linearGradient>
+  </defs>
+  <rect x="1" y="1" width="126" height="126" rx="29" fill="url(#tile)" stroke="url(#edge)" stroke-width="2"/>
+  <path d="M39 26H67L55 40H26Z" fill="#B8532A"/>
+  <path d="M89 102H61L73 88H102Z" fill="#B8532A"/>
+  <path d="M26 40 39 26 102 88 89 102Z" fill="url(#back)"/>
+  <path d="M51 65 65 51 80 66 66 80Z" fill="#81391F"/>
+  <path d="M26 88 88 26 102 40 40 102Z" fill="url(#front)"/>
+</svg>

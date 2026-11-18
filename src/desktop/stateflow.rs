@@ -172,7 +172,6 @@ pub fn show(ui: &mut Ui, chart: &StateflowChart, scene: &ChartScene, view: &mut 
     let canvas = frame.rect;
     let visuals = ui.visuals();
     let text = visuals.strong_text_color();
-    painter.rect_filled(canvas, 0, visuals.extreme_bg_color);
 
     // Parents precede descendants in the parsed order, so descendants stay visible.
     for (index, (node, world)) in chart.nodes.iter().zip(&scene.nodes).enumerate() {
@@ -185,7 +184,7 @@ pub fn show(ui: &mut Ui, chart: &StateflowChart, scene: &ChartScene, view: &mut 
         let selected = view.selected == Some(index);
         let border = match (selected, node.kind) {
             (true, _) => visuals.selection.stroke.color,
-            (false, ChartNodeKind::GraphicalFunction) => visuals.hyperlink_color,
+            (false, ChartNodeKind::GraphicalFunction) => theme::FUNCTION,
             _ => theme::OUTLINE,
         };
         let fill = if selected {

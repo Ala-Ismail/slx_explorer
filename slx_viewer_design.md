@@ -97,7 +97,7 @@ Before claiming support for any Simulink release, validate files saved by that r
 | Specialized blocks | Show a placeholder with an explicit unsupported-detail indication |
 | Missing or ambiguous geometry | Use a documented approximation and display a diagnostic |
 
-Preserve original routing and placement where available. Avoid automatic graph layout for normally supported content because it would change the visual meaning of a saved diagram. Any necessary fallback routing must be identifiable as approximate.
+Preserve original routing and placement where available. Anchor visible wire departures and arrivals to the corresponding block edge, taking port side, mirroring, and rotation into account. Where an estimated port and a saved route disagree, use orthogonal endpoint segments and route around that endpoint block when the last waypoint is on the wrong side. Retain saved branch junctions. Any necessary fallback routing must be identifiable as approximate.
 
 ### 1.5.1 Compatibility work
 
@@ -188,7 +188,7 @@ Suggested layout:
 
 ```text
 +---------------------------------------------------------------+
-| File | Help                                                   |
+| SLX Viewer | File | Help                                     |
 +---------------------------------------------------------------+
 +---------------------------------------------------------------+
 | ← | ↑ | Breadcrumbs                                    Search |
@@ -201,7 +201,7 @@ Suggested layout:
 +---------------------------------------------------------------+
 ```
 
-Display a persistent read-only indication. Selection highlights an object. There are no resize handles, connection handles, editable property controls, or save-model commands.
+Use the compact menu, tab, and navigation rows from the GUI mockup. Display the orange logo and title beside File and Help, and use a neutral grey dotted workspace with a diagram title and pan and zoom hint. Display a persistent read-only indication. Selection highlights an object. There are no resize handles, connection handles, editable property controls, or save-model commands.
 
 Use icon buttons **←** for Back and **↑** for Up in the navigation toolbar. Provide Back and Up tooltips, keyboard-shortcut hints, and accessible names. Disable the icons when their respective navigation actions are unavailable.
 
@@ -247,9 +247,11 @@ Enable entry only when the child diagram is available in the loaded model, inclu
 
 ### 1.7.3 Left model hierarchy panel
 
-Show a resizable, scrollable **Model Hierarchy** panel on the left of the diagram. Display the loaded model as the root and its available subsystems as nested, expandable tree nodes, including subsystems at any depth. Ordinary blocks remain visible in the diagram and search results; they are not tree nodes. Show an empty-state message before a model is opened.
+Show a resizable, scrollable **Model Hierarchy** panel on the left of the diagram. Display the loaded model as the root and its available subsystems as nested, expandable tree nodes, including subsystems at any depth. Use indentation and expand/collapse controls to show hierarchy. Ordinary blocks remain visible in the diagram and search results; they are not tree nodes. Show an empty-state message before a model is opened.
 
 Clicking a system name opens its diagram; the expand/collapse control only changes the tree. Highlight the system currently shown on the canvas, expand its ancestors as needed, and scroll the selected node into view when navigation occurs through a block, Esc, breadcrumbs, Back, or search. Preserve expanded nodes when navigating within a model. Opening a different model replaces the tree and resets its expansion state. Mark unavailable or unresolved subsystem contents and show a diagnostic instead of navigating to an unavailable diagram.
+
+Put model-wide block search at the right of the navigation row. Ctrl+K focuses it. Match names and qualified paths case-insensitively and show up to 50 matching rows with their owning system paths. Selecting a result, or pressing Enter for the first result, opens the owning diagram and reveals and inspects the matching block. Esc dismisses search before navigating to a parent system.
 
 ### 1.7.4 Stateflow chart view
 
@@ -279,10 +281,10 @@ Persist recent paths in the user's application settings directory. Update the li
 
 | Menu item | Behavior |
 | --- | --- |
-| Current Version and Build Information… | Open a read-only dialog with application version and build details |
+| About… | Show application version and build details and a Buy us a coffee link |
 | License… | Open a read-only view of the application license and bundled third-party notices |
 
-The version dialog shows the application name, Cargo package version, build timestamp in UTC, source revision when available, target platform and architecture, build profile, and active graphics backend. Obtain these details from the build and runtime metadata. Display unavailable fields explicitly when the source checkout or build environment cannot supply them.
+The About dialog shows the application name, Cargo package version, build timestamp in UTC, source revision when available, target platform and architecture, build profile, and active graphics backend. Obtain these details from the build and runtime metadata. Display unavailable fields explicitly when the source checkout or build environment cannot supply them. Buy us a coffee opens the project's PayPal support page in the default browser.
 
 The license view displays the project's chosen license text and the notices required by bundled dependencies and assets. Bundle this information for offline access. The project uses the MIT License in LICENSE; the dialog embeds that text. Dependencies and fixtures retain their respective notices and license terms.
 
@@ -294,16 +296,19 @@ Use a dark theme by default for the entire application, including the menu bar, 
 
 | Role | Color |
 | --- | --- |
-| Diagram canvas | `#11151B` |
-| Panels, menu bar, and dialogs | `#1B212B` |
-| Block and Stateflow state fill | `#242D39` |
-| Hovered controls | `#303D4E` |
-| Primary text | `#E7EDF5` |
-| Secondary text | `#AAB8CA` |
-| Connections, transitions, and arrowheads | `#CBD5E1` |
-| Block and state outlines | `#8B9DB3` |
-| Selected-object fill | `#173F5F` |
-| Selection outlines and keyboard focus | `#66C2FF` |
+| Diagram canvas | `#404043` |
+| Panels and dialogs | `#222428` |
+| Menu bar, tab strip, and status bar | `#1B1C1F` |
+| Navigation toolbar and active tab | `#282A2E` |
+| Block and Stateflow state fill | `#303136` |
+| Hovered controls | `#393C42` |
+| Primary text | `#F0F1F3` |
+| Secondary text | `#B5B9C1` |
+| Connections, transitions, and arrowheads | `#D3D6DC` |
+| Block and state outlines | `#A2A6AE` |
+| Selected-object fill | `#293B4F` |
+| Selection outlines and keyboard focus | `#9ACAFF` |
+| Logo and application name | `#F49B44` |
 | Graphical function outlines | `#A7B9FF` |
 | Warning text | `#FFD180` |
 | Error text | `#FF9B9B` |
@@ -323,6 +328,10 @@ Closing a tab releases its model and scene caches without a save prompt because 
 Give every loading tab a stable ID and request generation. Show its loading state and support cancellation without blocking interaction with other tabs. Route results only to the matching live tab and generation; completion must not steal focus from another active tab. Closing or cancelling a loading tab invalidates its outstanding result. A failed load shows an actionable error in its own tab and leaves other documents usable. Update recent files only on successful completion. Deduplicate in-flight requests for the same canonical path as well as loaded documents.
 
 Retain per-model archive and XML limits and bound concurrent parsing to one worker initially, queueing additional requests with per-tab cancellation. Do not preload scenes for inactive diagrams. Measure aggregate memory with several open models before selecting an overall document or memory limit; report allocation failures without discarding existing documents. Multi-model performance claims require separate evidence from single-model measurements.
+
+### 1.7.8 Startup screen
+
+Show the orange logo, SLX Viewer title, a short description of what the read-only SLX viewer displays, its open-source MIT notice, and copyright ownership from `LICENSE` for 1.8 seconds from the first startup frame. Use the same cup icon and PayPal destination on the startup screen and in Help > About. Transition to the viewer automatically. Start loading any launch argument in the background so a completed load is ready to display when the screen ends. The timer does not block the UI thread.
 
 ## 1.8 File handling and failure behavior
 
@@ -395,6 +404,7 @@ Record each criterion as Pass, Fail, or Not run, with build identifier, fixture,
 | T22 | Version, build, and license views | Help dialogs show actual version and available build metadata, clearly identify unavailable fields, and display the project license status and bundled notices offline. Esc dismisses the active dialog without navigating the diagram | Build-metadata checks and desktop review |
 | T23 | Dark color scheme | Menus, dialogs, panels, and both diagram canvases use the specified dark roles. Text, transitions, selection, and keyboard focus remain legible at supported display scaling settings | Theme and settings checks and native visual review |
 | T27 | Navigation icons and bottom-right zoom controls | Back and Up use ← and ↑ icons with tooltips and accessible names. Fit, −, the clickable zoom percentage, and + remain anchored to the status bar's right edge while resizing. Controls operate on the active system or chart and stay visible alongside long status messages | UI input tests and native Windows layout review; passed for tested sizes, see the README verification report |
+| T30 | Startup screen | Orange branding and the support link appear at launch. The viewer replaces the screen after 1.8 seconds and shows the loaded document when it is ready | Timed UI test and Windows smoke test |
 
 
 Planned tab acceptance checks supplement the table above:

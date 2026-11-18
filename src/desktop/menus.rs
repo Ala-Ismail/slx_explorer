@@ -6,6 +6,54 @@ use eframe::egui::{
 };
 
 const NOTICES: &str = include_str!("../../THIRD_PARTY_NOTICES.txt");
+pub(super) const LICENSE: &str = include_str!("../../LICENSE");
+const SUPPORT_URL: &str = "https://www.paypal.com/paypalme/12dazapp";
+
+pub(super) fn support_link(ui: &mut Ui) -> Response {
+    let icon = Id::new("coffee-cup");
+    let button = Button::new((
+        egui::Atom::custom(icon, egui::vec2(18.0, 18.0)),
+        egui::RichText::new("Buy us a coffee").color(ui.visuals().hyperlink_color),
+    ))
+    .gap(7.0)
+    .atom_ui(ui);
+    if let Some(rect) = button.rect(icon) {
+        let at = |x, y| rect.min + egui::vec2(x, y);
+        let stroke = egui::Stroke::new(1.35, ui.visuals().hyperlink_color);
+        let painter = ui.painter();
+        painter.add(egui::Shape::line(
+            vec![
+                at(2.5, 6.5),
+                at(12.5, 6.5),
+                at(12.5, 11.5),
+                at(10.0, 14.5),
+                at(5.0, 14.5),
+                at(2.5, 11.5),
+                at(2.5, 6.5),
+            ],
+            stroke,
+        ));
+        painter.add(egui::Shape::line(
+            vec![
+                at(12.5, 7.5),
+                at(15.0, 7.5),
+                at(16.0, 9.0),
+                at(15.0, 11.0),
+                at(12.5, 11.0),
+            ],
+            stroke,
+        ));
+        painter.line_segment([at(5.5, 4.0), at(5.5, 2.0)], stroke);
+        painter.line_segment([at(9.5, 4.0), at(9.5, 1.5)], stroke);
+    }
+    let response = button
+        .response
+        .on_hover_text("Open PayPal to support SLX Viewer");
+    if response.clicked() {
+        ui.open_url(egui::OpenUrl::new_tab(SUPPORT_URL));
+    }
+    response
+}
 
 #[derive(Clone, Copy, Debug, PartialEq)]
 enum Menu {
@@ -15,7 +63,7 @@ enum Menu {
 
 #[derive(Clone, Copy, Debug, PartialEq)]
 enum HelpDialog {
-    Build,
+    About,
     License,
 }
 
@@ -71,7 +119,7 @@ impl Menus {
             }
             (Some(Menu::Help), index) => {
                 self.dialog = Some(if index == 0 {
-                    HelpDialog::Build
+                    HelpDialog::About
                 } else {
                     HelpDialog::License
                 });
@@ -251,9 +299,7 @@ impl Menus {
                                     }
                                     Menu::Help => {
                                         for (index, label) in
-                                            ["Current Version and Build Information…", "License…"]
-                                                .iter()
-                                                .enumerate()
+                                            ["About…", "License…"].iter().enumerate()
                                         {
                                             if self.row(ui, index, label, true).clicked() {
                                                 self.selected = index;
@@ -302,8 +348,8 @@ impl Menus {
         let response = egui::Modal::new(Id::new("help-dialog")).show(ctx, |ui| {
             ui.set_width(620.0_f32.min(ctx.content_rect().width() - 40.0).max(240.0));
             match dialog {
-                HelpDialog::Build => {
-                    ui.heading("Current Version and Build Information");
+                HelpDialog::About => {
+                    ui.heading("About SLX Viewer");
                     egui::Grid::new("build-details")
                         .spacing([18.0, 8.0])
                         .show(ui, |ui| {
@@ -321,10 +367,12 @@ impl Menus {
                                 ui.end_row();
                             }
                         });
+                    ui.separator();
+                    support_link(ui);
                 }
                 HelpDialog::License => {
                     ui.heading("License");
-                    ui.label(include_str!("../../LICENSE"));
+                    ui.label(LICENSE);
                     ui.separator();
                     ui.strong("Third-party licenses and notices");
                     let height = ui.text_style_height(&egui::TextStyle::Monospace);
@@ -355,6 +403,37 @@ impl Menus {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn coffee_icon_opens_the_support_page() {
+        let ctx = Context::default();
+        let frame = |events, button: &mut egui::Rect| {
+            let mut output = ctx.run_ui(
+                egui::RawInput {
+                    events,
+                    focused: true,
+                    ..Default::default()
+                },
+                |ui| *button = support_link(ui).rect,
+            );
+            output.textures_delta.clear();
+            output
+        };
+        let mut button = egui::Rect::NOTHING;
+        frame(Vec::new(), &mut button);
+        let pos = egui::pos2(button.left() + 14.0, button.center().y);
+        let mut events = vec![egui::Event::PointerMoved(pos)];
+        events.extend([true, false].map(|pressed| egui::Event::PointerButton {
+            pos,
+            button: egui::PointerButton::Primary,
+            pressed,
+            modifiers: Modifiers::NONE,
+        }));
+        let output = frame(events, &mut button);
+        assert!(output.platform_output.commands.iter().any(|command| {
+            matches!(command, egui::OutputCommand::OpenUrl(link) if link.url == SUPPORT_URL)
+        }));
+    }
 
     #[test]
     fn recent_submenu_supports_arrow_navigation_and_escape() {

@@ -210,7 +210,6 @@ pub(super) fn interact(
 fn paint(ui: &Ui, painter: &Painter, canvas: Rect, system: &System, scene: &Scene, view: &View) {
     let visuals = ui.visuals();
     let text = visuals.strong_text_color();
-    painter.rect_filled(canvas, 0, visuals.extreme_bg_color);
     for path in &scene.wires {
         for pair in path.windows(2) {
             let start = view.screen(pair[0], canvas);

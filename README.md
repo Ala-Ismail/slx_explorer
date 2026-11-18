@@ -2,11 +2,11 @@
 
 **Windows executable downloads:** [Build downloads](https://github.com/Ala-Ismail/slx_viewer/actions/workflows/windows.yml) | [Versioned releases](https://github.com/Ala-Ismail/slx_viewer/releases)
 
-For a build download, select a successful run and download **slx_viewer-windows-x64** under **Artifacts**. Extract the artifact and the ZIP inside it, then run `slx_viewer_desktop.exe`. The initial build is still running; no versioned release has been published yet.
+For a build download, select a successful run and download **slx_viewer-windows-x64** under **Artifacts**. Extract the artifact and the ZIP inside it, then run `slx_viewer_desktop.exe`.
 
-After the first tagged release is published, use [Download the latest Windows x64 executable package](https://github.com/Ala-Ismail/slx_viewer/releases/latest/download/slx_viewer-windows-x64.zip). This link becomes available when that release contains the ZIP asset.
+For the latest tagged release, use [Download the Windows x64 executable package](https://github.com/Ala-Ismail/slx_viewer/releases/latest/download/slx_viewer-windows-x64.zip).
 
-Downloads require repository access while this repository is private. Public release downloads require a public repository, or the binaries can be distributed separately.
+Use the release page for a direct download of a versioned package and its SHA-256 checksum.
 
 ## 1.1 Overview
 
@@ -37,20 +37,20 @@ Dependency and font notices are embedded in the executable and shown under **Hel
 
 The **Windows build** workflow runs on pushes to `main`, pull requests, version tags (`v*`), and manual dispatch. It checks formatting, Clippy, and tests before building Windows x64 release executables with the locked dependencies.
 
-Open the repository's **Actions > Windows build**, select a successful run, and download **slx_viewer-windows-x64** under **Artifacts**. Extract the downloaded artifact, then extract `slx_viewer-windows-x64.zip` and launch `slx_viewer_desktop.exe`. The package also contains the command-line executable, README, license, third-party notices, and a separate ZIP checksum. Artifacts are retained for 14 days. GitHub sign-in and access to this private repository are required.
+Open the repository's **Actions > Windows build**, select a successful run, and download **slx_viewer-windows-x64** under **Artifacts**. Extract the downloaded artifact, then extract `slx_viewer-windows-x64.zip` and launch `slx_viewer_desktop.exe`. The package also contains the command-line executable, README, license, third-party notices, and a separate ZIP checksum. Artifacts are retained for 14 days.
 
 For a persistent versioned download, push a version tag after updating the Cargo package version and lockfile as appropriate:
 
 ```powershell
-git tag v0.1.0
-git push origin v0.1.0
+git tag -a v0.2.0 -m "SLX Viewer v0.2.0"
+git push origin v0.2.0
 ```
 
-A successful tagged build creates a GitHub Release with the ZIP and SHA-256 checksum under **Releases > Assets**. Downloads remain restricted while the repository is private. No personal access token secret is needed; the release job uses GitHub's automatic token with permission to write repository contents. The workflow does not perform native GUI or clean-machine acceptance testing.
+A successful tagged build creates a GitHub Release with the ZIP and SHA-256 checksum under **Releases > Assets**. The release job uses GitHub's automatic token with permission to write repository contents. The workflow does not perform native GUI or clean-machine acceptance testing.
 
 ## 1.3 Open a model
 
-Double-click `slx_viewer_desktop.exe`. The app opens to an empty window. Choose **File > Open…** or press **Ctrl+O**, then select a local `.slx` file. To try the viewer, select `tests\fixtures\dc_motor_speed_control.slx` from the repository. You can also drop a model on the window, or provide a path when launching the app.
+Double-click `slx_viewer_desktop.exe`. The startup screen shows the SLX Viewer logo, open-source MIT and copyright notices, and **Buy us a coffee** for 1.8 seconds before revealing the viewer. Choose **File > Open…** or press **Ctrl+O**, then select a local `.slx` file. To try the viewer, select `tests\fixtures\dc_motor_speed_control.slx` from the repository. You can also drop a model on the window, or provide a path when launching the app. Launch arguments begin loading during the startup screen.
 
 ```powershell
 .\target\release\slx_viewer_desktop.exe
@@ -90,14 +90,15 @@ Open a supported chart by double-clicking its block, pressing Enter with the blo
 
 **File > Open Recent** lists the ten most recently opened models, with their paths. Successful opens update the list. Settings are stored in `%APPDATA%\slx_viewer\settings.json`, including the default dark theme preference. Set `SLX_VIEWER_SETTINGS_DIR` to use another settings directory.
 
-**Help > Current Version and Build Information…** shows the version, UTC build timestamp, source revision when available, target, profile, and graphics backend. **Help > License…** shows the project license status and the bundled dependency and font notices offline. The project is licensed under the [MIT License](LICENSE). Bundled dependencies and model fixtures retain their own license terms.
+**Help > About…** shows the version, UTC build timestamp, source revision when available, target, profile, and graphics backend. **Buy us a coffee** opens the project's PayPal support page. **Help > License…** shows the project license and bundled dependency and font notices offline. The project is licensed under the [MIT License](LICENSE). Bundled dependencies and model fixtures retain their own license terms.
 
 Use **Alt+F** or **Alt+H**, arrow keys, and **Enter** to operate the menus. **Esc** closes the active submenu or dialog before navigating the model.
 
 ## 1.4 Supported layouts and limits
 
 - The loader discovers the block diagram and release metadata through package relationships, with fallbacks to the conventional block diagram and release metadata part names. Systems can be embedded in the diagram or resolved through the owning part's system relationships.
-- The model retains system-local block identifiers, direct stored properties, saved block bounds, orientation and mirroring flags, declared port counts, ports observed in connections, annotations, and signal branch offsets. The canvas estimates port positions and the last stretch of each wire from these data. Specialized block icons and model-wide search are pending.
+- The model retains system-local block identifiers, direct stored properties, saved block bounds, orientation and mirroring flags, declared port counts, ports observed in connections, annotations, and signal branch offsets. The canvas aligns wire ends with the estimated port edges and preserves saved block positions and branch junctions. Wire-end detours around endpoint blocks remain approximate. Specialized block icons are pending.
+- **Ctrl+K** focuses the block search box. Search by name or system path and select a result to reveal the block and inspect its stored properties. Press **Enter** to select the first result.
 - Missing child parts and unresolved endpoints produce diagnostics. External models, model workspaces, defaults, specialized block semantics, and nested parameter structures are outside the current parser coverage. Only the fixtures listed in the [fixture manifest](tests/fixtures/README.md) have been exercised.
 - The loader opens the file read-only and processes selected ZIP parts in memory. Defaults cap the compressed file at 128 MiB, the indexed entry count at 4,096, declared and consumed expanded data at 128 MiB, a read part at 16 MiB, and XML at 96 levels and 500,000 elements. System hierarchy has a separate depth cap of 32. The ZIP dependency builds its index before the entry-count check and coalesces duplicate entry names, which limits what that check covers.
 
@@ -112,21 +113,25 @@ cargo test --locked --all-targets --all-features
 cargo build --release --locked
 ```
 
-Build `0.1.0`, Rust 1.99.1, `x86_64-pc-windows-msvc`, Windows build 26300. Cargo used cached dependencies and the included `Cargo.lock`. The current documentation cleanup has no new native visual verification.
+Release candidate `0.2.0`, `x86_64-pc-windows-msvc`, Windows build 26300. Earlier native visual checks used `dc_motor_speed_control.slx` at 175% scaling.
 
 | Check | Result | Evidence |
 | --- | --- | --- |
 | Rust formatting | Pass | `cargo fmt --all -- --check` |
 | Clippy | Pass | All targets and features, warnings treated as errors |
-| Automated tests | Pass | Eleven integration tests and twelve desktop tests across all targets and features, using the retained motor fixture and synthetic packages |
-| Locked Windows x64 release build | Pass | Built the CLI and desktop executables under `target\stateflow\release` |
+| Automated tests | Pass | Eleven integration tests and seventeen desktop tests across all targets and features, using the retained motor fixture and synthetic cases |
+| Locked Windows x64 release build | Pass | Built the CLI and desktop executables under `target\x86_64-pc-windows-msvc\release` with the GitHub Actions build command |
+| Local Windows ZIP smoke test | Pass | Verified the package contents and SHA-256, extracted both executables, and opened the saved motor fixture with each. The fixture hash was unchanged |
 | Native launch and file picker | Pass | On an isolated Windows desktop, File > Open selected a fixture through the native dialog. After restart, Open Recent reopened the saved path. Settings retained two unique paths and the dark preference |
 | T02 parser content | Pass for listed fixtures | Independently inspected saved XML and authored synthetic expectations cover counts, identity, hierarchy, properties, port information, and connectivity |
+| T03 wire alignment | Pass for tested cases | Geometry tests verified saved branch junctions and perpendicular wire attachment at rotated and mirrored ports. Native visual review of the updated routing was not run |
 | T01, T03–T04, T08, T10, T12–T13, T15–T16, T18 | Not run in full | Native smoke and automated checks cover picker and launch paths, branch geometry, pointer-anchored zoom limits, parent and Back state, unavailable interiors, read-only file access, malformed packages, and stale or cancelled completion handling |
-| T05–T07, T09, T11, T14, T17 | Not run in full | Manual canvas interactions, full keyboard priority, model-wide search, process and network observation, and clean-machine distribution remain to be verified |
+| T05–T07, T09, T14, T17 | Not run in full | Manual canvas interactions, full keyboard priority, process and network observation, and clean-machine distribution remain to be verified |
+| T11 Search and inspect | Pass for tested cases | Egui keyboard test selected BackEMF from the saved motor fixture and displayed `p.Ke` literally. A separate test resolved duplicate block names by qualified system path |
 | T21 File and recent models | Pass for tested cases | Tests cover persistence, equivalent-path deduplication, the ten-file limit, multiple app instances, failed opens, cancellation, and menu Esc handling. Native restart and recent-file selection passed |
 | T22 Help dialogs | Pass for tested cases | Native review and egui tests checked actual build metadata, explicit unavailable revision, offline license notices, and Esc handling |
-| T23 Dark theme | Not run in full | Native review confirmed dark menus, dialogs, panels, and Simulink and Stateflow canvases at 175% Windows scaling. The full display-scaling matrix remains pending |
+| T23 Dark theme | Not run in full | Native review confirmed the updated Simulink theme at 1200×800 and 740×460 logical pixels at 175% Windows scaling. The updated Stateflow theme and full display-scaling matrix remain pending |
+| T30 Startup screen | Pass for automated cases | Egui tests checked the description, license notice, copyright, timed transition to a loaded fixture, and PayPal action from the cup icon. Native visual review of the updated splash was not run |
 | Display scaling and performance | Not run | Display scaling matrix and reference-machine measurements remain pending |
 
 No failures remained in the final checks above. See [the design](slx_viewer_design.md#111-implementation-milestones) for the remaining milestones.

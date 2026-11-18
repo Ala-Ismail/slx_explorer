@@ -1,7 +1,9 @@
 mod canvas;
 mod menus;
 mod scene;
+mod search;
 mod settings;
+mod startup;
 mod stateflow;
 mod theme;
 mod worker;
@@ -9,9 +11,12 @@ mod worker;
 use std::{
     collections::{HashMap, HashSet},
     path::PathBuf,
+    time::Instant,
 };
 
-use eframe::egui::{self, Align, Context, Key, Layout, Modifiers, Panel, ScrollArea, Ui};
+use eframe::egui::{
+    self, Align, Context, Key, Layout, Modifiers, Panel, RichText, ScrollArea, Ui, vec2,
+};
 use slx_viewer::model::{
     BlockIndex, Model, SystemId,
     stateflow::{ChartId, ChartNodeKind},
@@ -21,19 +26,23 @@ use self::{
     canvas::{View, ViewAction},
     menus::{Action, Menus},
     scene::Scene,
+    search::Search,
     settings::Settings,
+    startup::Startup,
     stateflow::ChartScene,
     worker::Loader,
 };
 
 pub fn run() -> eframe::Result {
     let initial_path = std::env::args_os().nth(1).map(PathBuf::from);
+    let icon = application_icon();
     eframe::run_native(
         "SLX Viewer",
         eframe::NativeOptions {
             viewport: egui::ViewportBuilder::default()
                 .with_inner_size([1200.0, 800.0])
-                .with_min_inner_size([740.0, 460.0]),
+                .with_min_inner_size([740.0, 460.0])
+                .with_icon(icon.clone()),
             ..Default::default()
         },
         Box::new(move |creation| {
@@ -49,6 +58,8 @@ pub fn run() -> eframe::Result {
                 show_diagnostics: false,
                 settings,
                 menus: Menus::default(),
+                logo: logo_texture(&creation.egui_ctx, &icon),
+                startup: Some(Startup::default()),
                 backend: if creation.gl.is_some() {
                     "OpenGL (glow)".into()
                 } else {
@@ -60,6 +71,22 @@ pub fn run() -> eframe::Result {
             }
             Ok(Box::new(app))
         }),
+    )
+}
+
+fn application_icon() -> egui::IconData {
+    eframe::icon_data::from_png_bytes(include_bytes!("../../assets/slx-viewer-logo.png"))
+        .expect("the embedded SLX Viewer logo is a PNG")
+}
+
+fn logo_texture(ctx: &Context, icon: &egui::IconData) -> egui::TextureHandle {
+    ctx.load_texture(
+        "SLX Viewer logo",
+        egui::ColorImage::from_rgba_unmultiplied(
+            [icon.width as usize, icon.height as usize],
+            &icon.rgba,
+        ),
+        egui::TextureOptions::LINEAR,
     )
 }
 
@@ -78,6 +105,8 @@ struct App {
     show_diagnostics: bool,
     settings: Settings,
     menus: Menus,
+    logo: egui::TextureHandle,
+    startup: Option<Startup>,
     backend: String,
 }
 
@@ -147,15 +176,29 @@ impl App {
         }) {
             self.open(path);
         }
+        if let Some(startup) = &mut self.startup {
+            if startup.show(ui, &self.logo, Instant::now()) {
+                return false;
+            }
+            self.startup = None;
+        }
         let mut menu_action = None;
         let mut menu_blocked = false;
-        Panel::top("menubar").show(ui, |ui| {
-            (menu_action, menu_blocked) = self.menus.show(
-                ui,
-                &self.settings.preferences.recent,
-                !self.show_diagnostics,
-            );
-        });
+        Panel::top("menubar")
+            .exact_size(42.0)
+            .frame(theme::bar(theme::CHROME))
+            .show(ui, |ui| {
+                ui.with_layout(Layout::left_to_right(Align::Center), |ui| {
+                    ui.image((self.logo.id(), vec2(28.0, 28.0)));
+                    ui.label(RichText::new("SLX Viewer").strong().color(theme::BRAND));
+                    chrome_divider(ui);
+                    (menu_action, menu_blocked) = self.menus.show(
+                        ui,
+                        &self.settings.preferences.recent,
+                        !self.show_diagnostics,
+                    );
+                });
+            });
         let mut open = !self.show_diagnostics
             && !self.menus.modal_open()
             && ui.input_mut(|input| input.consume_key(Modifiers::CTRL, Key::O));
@@ -167,13 +210,15 @@ impl App {
         if open {
             self.menus.close();
         }
-        if !self.show_diagnostics && !self.menus.modal_open() {
+        {
+            let tabs_enabled = !self.show_diagnostics && !self.menus.modal_open();
             let mut selected = None;
             let mut close = None;
             Panel::top("model-tabs")
+                .exact_size(36.0)
                 .frame(
                     egui::Frame::new()
-                        .fill(theme::CANVAS)
+                        .fill(theme::CHROME)
                         .inner_margin(egui::Margin {
                             left: 8,
                             right: 8,
@@ -182,6 +227,9 @@ impl App {
                         }),
                 )
                 .show(ui, |ui| {
+                    if !tabs_enabled {
+                        ui.disable();
+                    }
                     ScrollArea::horizontal().show(ui, |ui| {
                         ui.horizontal(|ui| {
                             ui.spacing_mut().item_spacing.x = 2.0;
@@ -202,7 +250,11 @@ impl App {
                                 };
                                 ui.push_id(path, |ui| {
                                     let visuals = ui.visuals();
-                                    let fill = if active { theme::PANEL } else { theme::CANVAS };
+                                    let fill = if active {
+                                        theme::TOOLBAR
+                                    } else {
+                                        theme::CHROME
+                                    };
                                     let stroke = if active {
                                         visuals.selection.stroke
                                     } else {
@@ -216,9 +268,10 @@ impl App {
                                             sw: 0,
                                             se: 0,
                                         })
-                                        .inner_margin(egui::Margin::symmetric(6, 3))
+                                        .inner_margin(egui::Margin::symmetric(6, 2))
                                         .show(ui, |ui| {
                                             ui.horizontal(|ui| {
+                                                ui.label(RichText::new("□").color(theme::FOCUS));
                                                 if ui
                                                     .add(
                                                         egui::Button::new(
@@ -235,7 +288,7 @@ impl App {
                                                     selected = Some(index);
                                                 }
                                                 if ui
-                                                    .add(egui::Button::new("x").frame(false))
+                                                    .add(egui::Button::new("×").frame(false))
                                                     .on_hover_text("Close tab (Ctrl+W)")
                                                     .clicked()
                                                 {
@@ -258,7 +311,7 @@ impl App {
                                     if !active {
                                         ui.painter().line_segment(
                                             [bounds.left_bottom(), bounds.right_bottom()],
-                                            egui::Stroke::new(1.0, theme::OUTLINE),
+                                            egui::Stroke::new(1.0, theme::DIVIDER),
                                         );
                                     }
                                 });
@@ -266,7 +319,7 @@ impl App {
                         });
                     });
                 });
-            if ui.input_mut(|input| input.consume_key(Modifiers::CTRL, Key::W)) {
+            if tabs_enabled && ui.input_mut(|input| input.consume_key(Modifiers::CTRL, Key::W)) {
                 close = Some(self.tabs.len());
             }
             if let Some(index) = selected {
@@ -299,80 +352,111 @@ impl App {
             ),
         ));
         let document = &mut self.document;
+        let mut search_active = false;
+        Panel::top("toolbar")
+            .exact_size(45.0)
+            .frame(theme::bar(theme::TOOLBAR))
+            .show(ui, |ui| {
+                if let Some(document) = document.as_mut() {
+                    ui.with_layout(Layout::right_to_left(Align::Center), |ui| {
+                        let (selected, active) = ui
+                            .add_enabled_ui(
+                                !menu_blocked && !self.show_diagnostics && !open,
+                                |ui| document.search.show(ui, &document.model),
+                            )
+                            .inner;
+                        search_active = active;
+                        if let Some((system, block)) = selected {
+                            document.select_block(system, block);
+                        }
+                        ui.with_layout(Layout::left_to_right(Align::Center), |ui| {
+                            document.toolbar(ui)
+                        });
+                    });
+                } else {
+                    ui.with_layout(Layout::left_to_right(Align::Center), |ui| {
+                        navigation_icon(ui, false, false);
+                        navigation_icon(ui, false, true);
+                    });
+                }
+            });
         if let Some(document) = document.as_mut()
             && !self.show_diagnostics
             && !menu_blocked
             && !open
+            && !search_active
         {
             document.keyboard_navigation(ui);
         }
-        if let Some(document) = document.as_mut() {
-            Panel::top("toolbar").show(ui, |ui| {
-                ui.horizontal_wrapped(|ui| {
-                    document.toolbar(ui);
-                });
-            });
-        }
-        Panel::bottom("status").show(ui, |ui| {
-            ui.with_layout(Layout::right_to_left(Align::Center), |ui| {
-                let view = document
-                    .as_mut()
-                    .map(|document| document.views.entry(document.current).or_default());
-                zoom_controls(ui, view);
-                let size = egui::vec2(ui.available_width(), ui.spacing().interact_size.y);
-                ui.allocate_ui_with_layout(size, Layout::left_to_right(Align::Center), |ui| {
-                    ui.set_clip_rect(ui.max_rect().intersect(ui.clip_rect()));
-                    ui.strong("Read-only");
-                    if let Some(document) = document.as_ref() {
-                        if !document.model.diagnostics.is_empty()
-                            && ui
-                                .button(format!(
-                                    "Diagnostics ({})",
-                                    document.model.diagnostics.len()
-                                ))
-                                .clicked()
-                        {
-                            self.show_diagnostics = true;
+        Panel::bottom("status")
+            .exact_size(45.0)
+            .frame(theme::bar(theme::CHROME))
+            .show(ui, |ui| {
+                ui.with_layout(Layout::right_to_left(Align::Center), |ui| {
+                    let view = document
+                        .as_mut()
+                        .map(|document| document.views.entry(document.current).or_default());
+                    zoom_controls(ui, view);
+                    let size = egui::vec2(ui.available_width(), ui.spacing().interact_size.y);
+                    ui.allocate_ui_with_layout(size, Layout::left_to_right(Align::Center), |ui| {
+                        ui.set_clip_rect(ui.max_rect().intersect(ui.clip_rect()));
+                        ui.label(RichText::new("Read-only").small().strong());
+                        chrome_divider(ui);
+                        if let Some(document) = document.as_ref() {
+                            if !document.model.diagnostics.is_empty()
+                                && ui
+                                    .button(format!(
+                                        "Diagnostics ({})",
+                                        document.model.diagnostics.len()
+                                    ))
+                                    .clicked()
+                            {
+                                self.show_diagnostics = true;
+                            }
+                            if let Some(release) = &document.model.release {
+                                ui.label(RichText::new(release).small().color(theme::MUTED));
+                            }
                         }
-                        if let Some(release) = &document.model.release {
-                            ui.label(release);
+                        if self.loader.pending_path().is_some() && ui.button("Cancel").clicked() {
+                            self.loader.cancel();
                         }
-                    }
-                    if self.loader.pending_path().is_some() && ui.button("Cancel").clicked() {
-                        self.loader.cancel();
-                    }
-                    let (status, color) = if let Some(error) = &self.error {
-                        (error.clone(), ui.visuals().error_fg_color)
-                    } else if let Some(warning) = &self.settings.warning {
-                        (warning.clone(), ui.visuals().warn_fg_color)
-                    } else if let Some(path) = self.loader.pending_path() {
-                        (
-                            format!("Loading {}", path.display()),
-                            ui.visuals().text_color(),
+                        let (status, color) = if let Some(error) = &self.error {
+                            (error.clone(), ui.visuals().error_fg_color)
+                        } else if let Some(warning) = &self.settings.warning {
+                            (warning.clone(), ui.visuals().warn_fg_color)
+                        } else if let Some(path) = self.loader.pending_path() {
+                            (
+                                format!("Loading {}", path.display()),
+                                ui.visuals().text_color(),
+                            )
+                        } else {
+                            (
+                                document
+                                    .as_ref()
+                                    .map(|document| document.status_text())
+                                    .unwrap_or_else(|| "No model loaded".into()),
+                                theme::MUTED,
+                            )
+                        };
+                        ui.add(
+                            egui::Label::new(RichText::new(&status).small().color(color))
+                                .truncate(),
                         )
-                    } else {
-                        (
-                            document
-                                .as_ref()
-                                .map(|document| document.status_text())
-                                .unwrap_or_default(),
-                            ui.visuals().text_color(),
-                        )
-                    };
-                    ui.add(egui::Label::new(egui::RichText::new(&status).color(color)).truncate())
                         .on_hover_text(&status);
+                    });
                 });
             });
-        });
+        let width = ui.available_width();
         Panel::left("hierarchy")
-            .default_size(180.0)
+            .default_size((width * 0.18).clamp(170.0, 250.0))
+            .size_range(145.0..=(width * 0.26).max(170.0))
+            .frame(theme::bar(theme::PANEL).inner_margin(egui::Margin::symmetric(12, 6)))
             .resizable(true)
             .show(ui, |ui| {
-                ui.heading("Model hierarchy");
-                ui.separator();
+                panel_heading(ui, "Model hierarchy");
                 if let Some(document) = document.as_mut() {
                     let mut target = None;
-                    ScrollArea::both().show(ui, |ui| {
+                    ScrollArea::vertical().show(ui, |ui| {
                         target = document.tree(ui, document.model.root);
                     });
                     document.reveal_tree_selection = false;
@@ -380,30 +464,43 @@ impl App {
                         document.navigate(target);
                     }
                 } else {
-                    ui.label("No model open");
+                    ui.weak("No model open");
                 }
             });
-        if let Some(document) = document.as_mut() {
-            Panel::right("properties")
-                .default_size(230.0)
-                .resizable(true)
-                .show(ui, |ui| {
+        Panel::right("properties")
+            .default_size((width * 0.20).clamp(190.0, 278.0))
+            .size_range(155.0..=(width * 0.28).max(190.0))
+            .frame(theme::bar(theme::PANEL).inner_margin(egui::Margin::symmetric(12, 6)))
+            .resizable(true)
+            .show(ui, |ui| {
+                panel_heading(ui, "Properties");
+                if let Some(document) = document.as_ref() {
                     document.properties(ui);
-                });
-            egui::CentralPanel::default().show(ui, |ui| {
-                document.canvas(ui);
+                } else {
+                    ui.weak("Open a model to inspect blocks.");
+                }
             });
-        } else {
-            egui::CentralPanel::default().show(ui, |ui| {
-                ui.centered_and_justified(|ui| {
-                    if self.loader.pending_path().is_some() {
-                        ui.spinner();
-                    } else {
-                        open |= ui.button("Open SLX model…").clicked();
-                    }
-                });
+        egui::CentralPanel::default()
+            .frame(egui::Frame::new().fill(theme::CANVAS))
+            .show(ui, |ui| {
+                theme::canvas_background(ui.painter(), ui.max_rect());
+                if let Some(document) = document.as_mut() {
+                    document.workspace(ui);
+                } else {
+                    let top = ((ui.available_height() - 70.0) / 2.0).max(0.0);
+                    ui.with_layout(Layout::top_down(Align::Center), |ui| {
+                        ui.add_space(top);
+                        if self.loader.pending_path().is_some() {
+                            ui.spinner();
+                            ui.label("Loading model…");
+                        } else {
+                            ui.heading("No model open");
+                            ui.add_space(4.0);
+                            open |= ui.button("Open SLX model…").clicked();
+                        }
+                    });
+                }
             });
-        }
         if self.show_diagnostics
             && let Some(document) = self.document.as_ref()
         {
@@ -428,11 +525,24 @@ impl App {
     }
 }
 
-fn navigation_icon(ui: &mut Ui, enabled: bool, up: bool) -> egui::Response {
-    let response = ui.add_enabled(
-        enabled,
-        egui::Button::new("").min_size(egui::vec2(24.0, 20.0)),
+fn panel_heading(ui: &mut Ui, heading: &str) {
+    ui.allocate_ui_with_layout(
+        vec2(ui.available_width(), 25.0),
+        Layout::left_to_right(Align::Center),
+        |ui| {
+            ui.strong(heading);
+        },
     );
+    ui.separator();
+}
+
+fn chrome_divider(ui: &mut Ui) {
+    let (rect, _) = ui.allocate_exact_size(vec2(1.0, 20.0), egui::Sense::hover());
+    ui.painter().rect_filled(rect, 0, theme::DIVIDER);
+}
+
+fn navigation_icon(ui: &mut Ui, enabled: bool, up: bool) -> egui::Response {
+    let response = ui.add_enabled(enabled, egui::Button::new("").min_size(vec2(32.0, 28.0)));
     let visuals = ui.style().interact(&response);
     let direction = if up {
         egui::vec2(0.0, -10.0)
@@ -457,22 +567,30 @@ fn zoom_controls(ui: &mut Ui, view: Option<&mut View>) {
     let mut action = None;
     ui.add_enabled_ui(view.is_some(), |ui| {
         // The status row flows from the right edge toward the left.
-        if ui.button("+").on_hover_text("Zoom in").clicked() {
+        if ui
+            .add_sized([28.0, 28.0], egui::Button::new("+"))
+            .on_hover_text("Zoom in")
+            .clicked()
+        {
             action = Some(ViewAction::Scale(1.25));
         }
         let percent = view.as_ref().map_or(100.0, |view| view.percent());
         if ui
-            .button(format!("{percent:.0}%"))
+            .add_sized([53.0, 28.0], egui::Button::new(format!("{percent:.0}%")))
             .on_hover_text("Reset to 100%")
             .clicked()
         {
             action = Some(ViewAction::Reset);
         }
-        if ui.button("−").on_hover_text("Zoom out").clicked() {
+        if ui
+            .add_sized([28.0, 28.0], egui::Button::new("−"))
+            .on_hover_text("Zoom out")
+            .clicked()
+        {
             action = Some(ViewAction::Scale(1.0 / 1.25));
         }
         if ui
-            .button("Fit")
+            .add_sized([36.0, 28.0], egui::Button::new("Fit"))
             .on_hover_text("Fit current diagram")
             .clicked()
         {
@@ -511,6 +629,7 @@ struct Document {
     chart_scenes: HashMap<ChartId, ChartScene>,
     expanded: HashSet<SystemId>,
     reveal_tree_selection: bool,
+    search: Search,
 }
 
 #[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
@@ -540,6 +659,7 @@ impl Document {
             chart_scenes: HashMap::new(),
             expanded: HashSet::from([root]),
             reveal_tree_selection: true,
+            search: Search::default(),
         }
     }
 
@@ -571,12 +691,16 @@ impl Document {
 
     fn up(&mut self) {
         if let Some((parent, block)) = self.parent() {
-            let location = Location::System(parent);
-            self.navigate(location);
-            let view = self.views.entry(location).or_default();
-            view.selected = Some(block);
-            view.reveal = Some(block);
+            self.select_block(parent, block);
         }
+    }
+
+    fn select_block(&mut self, system: SystemId, block: BlockIndex) {
+        let location = Location::System(system);
+        self.navigate(location);
+        let view = self.views.entry(location).or_default();
+        view.selected = Some(block);
+        view.reveal = Some(block);
     }
 
     fn keyboard_navigation(&mut self, ui: &Ui) {
@@ -673,7 +797,13 @@ impl Document {
         if up.clicked() {
             self.up();
         }
-        ui.separator();
+        chrome_divider(ui);
+        ScrollArea::horizontal().show(ui, |ui| {
+            ui.horizontal(|ui| self.breadcrumbs(ui));
+        });
+    }
+
+    fn breadcrumbs(&mut self, ui: &mut Ui) {
         let breadcrumb_location = self.current;
         let mut crumbs = vec![breadcrumb_location.system()];
         while let Some((parent, _)) = self.model.systems[*crumbs.last().unwrap()].parent {
@@ -682,17 +812,30 @@ impl Document {
         for system in crumbs.into_iter().rev() {
             let target = Location::System(system);
             if target == self.current {
-                ui.strong(&self.model.systems[system].name);
+                ui.add(
+                    egui::Label::new(RichText::new(&self.model.systems[system].name).strong())
+                        .truncate(),
+                );
             } else {
-                if ui.button(&self.model.systems[system].name).clicked() {
+                let name = &self.model.systems[system].name;
+                if ui
+                    .add(egui::Button::new(name).frame(false).truncate())
+                    .on_hover_text(name)
+                    .clicked()
+                {
                     self.navigate(target);
                     break;
                 }
-                ui.label("/");
+                ui.weak("›");
             }
         }
         if let Location::Chart { owner, block } = self.current {
-            ui.strong(&self.model.systems[owner].blocks[block].name);
+            ui.add(
+                egui::Label::new(
+                    RichText::new(&self.model.systems[owner].blocks[block].name).strong(),
+                )
+                .truncate(),
+            );
         }
     }
 
@@ -718,12 +861,12 @@ impl Document {
                 ui.add_space(22.0);
             } else {
                 let icon = if self.expanded.contains(&system) {
-                    "−"
+                    "▾"
                 } else {
-                    "▶"
+                    "▸"
                 };
                 if ui
-                    .small_button(icon)
+                    .add_sized([16.0, 25.0], egui::Button::new(icon).frame(false))
                     .on_hover_text("Expand or collapse")
                     .clicked()
                     && !self.expanded.remove(&system)
@@ -732,7 +875,14 @@ impl Document {
                 }
             }
             let selected = Location::System(system) == self.current;
-            let label = ui.selectable_label(selected, &node.name);
+            let label = ui
+                .add_sized(
+                    [ui.available_width(), 27.0],
+                    egui::Button::selectable(selected, "")
+                        .left_text(node.name.as_str())
+                        .truncate(),
+                )
+                .on_hover_text(&node.name);
             if self.reveal_tree_selection && selected {
                 label.scroll_to_me(None);
             }
@@ -740,7 +890,7 @@ impl Document {
                 result = Some(Location::System(system));
             }
         });
-        if self.expanded.contains(&system) {
+        if !children.is_empty() && self.expanded.contains(&system) {
             ui.indent(system, |ui| {
                 for (child, name) in children {
                     match child {
@@ -772,8 +922,6 @@ impl Document {
     }
 
     fn properties(&self, ui: &mut Ui) {
-        ui.heading("Properties");
-        ui.separator();
         let selected = self.views.get(&self.current).and_then(|view| view.selected);
         if let Location::Chart { owner, block } = self.current {
             self.chart_properties(ui, self.chart_id(owner, block), selected);
@@ -781,18 +929,71 @@ impl Document {
         }
         let system = &self.model.systems[self.current.system()];
         let Some(block) = selected.map(|index| &system.blocks[index]) else {
-            ui.label("Select a block.");
+            ui.weak("Select a block to inspect its stored properties.");
             return;
         };
         ScrollArea::vertical().show(ui, |ui| {
-            ui.strong(&block.name);
-            ui.label(&block.block_type);
-            ui.small(format!("SID {}", block.sid));
-            for (name, value) in &block.properties {
+            ui.label(RichText::new(&block.name).size(16.0).strong());
+            ui.weak(&block.block_type);
+            ui.separator();
+            ui.strong("General");
+            ui.horizontal(|ui| {
+                ui.weak("SID");
+                ui.with_layout(Layout::right_to_left(Align::Center), |ui| {
+                    ui.monospace(&block.sid);
+                });
+            });
+            if !block.properties.is_empty() {
                 ui.separator();
-                ui.strong(name);
-                ui.label(value);
+                ui.strong("Parameters");
+                for (name, value) in &block.properties {
+                    ui.weak(name);
+                    ui.label(RichText::new(value).monospace().small());
+                    ui.add_space(3.0);
+                }
             }
+        });
+    }
+
+    fn workspace(&mut self, ui: &mut Ui) {
+        let (name, kind) = match self.current {
+            Location::System(id) => (
+                &self.model.systems[id].name,
+                if id == self.model.root {
+                    "Block diagram"
+                } else {
+                    "Subsystem diagram"
+                },
+            ),
+            Location::Chart { owner, block } => (
+                &self.model.systems[owner].blocks[block].name,
+                "Stateflow chart",
+            ),
+        };
+        egui::Frame::new()
+            .inner_margin(egui::Margin::symmetric(20, 10))
+            .show(ui, |ui| {
+                ui.add(egui::Label::new(RichText::new(name).heading().strong()).truncate());
+                ui.label(RichText::new(kind).small().color(theme::WIRE));
+            });
+        let space = ui.available_size();
+        ui.allocate_ui_with_layout(
+            vec2(space.x, (space.y - 28.0).max(1.0)),
+            Layout::top_down(Align::Min),
+            |ui| {
+                self.canvas(ui);
+            },
+        );
+        ui.horizontal(|ui| {
+            ui.add_space(20.0);
+            ui.add(
+                egui::Label::new(
+                    RichText::new("Drag to pan · Ctrl + scroll to zoom")
+                        .small()
+                        .color(theme::WIRE),
+                )
+                .truncate(),
+            );
         });
     }
 
@@ -877,6 +1078,8 @@ mod tests {
             show_diagnostics: false,
             settings: Settings::at(directory),
             menus: Menus::default(),
+            logo: logo_texture(ctx, &application_icon()),
+            startup: None,
             backend: "OpenGL (glow)".into(),
         }
     }
@@ -899,6 +1102,10 @@ mod tests {
                     .to_vec()
             })
             .unwrap_or_default();
+        app_frame_events(ctx, app, events)
+    }
+
+    fn app_frame_events(ctx: &Context, app: &mut App, events: Vec<Event>) -> (bool, Vec<String>) {
         let mut open = false;
         let mut output = ctx.run_ui(
             RawInput {
@@ -928,6 +1135,68 @@ mod tests {
         }
         output.textures_delta.clear();
         (open, result)
+    }
+
+    #[test]
+    fn toolbar_search_reveals_an_object_and_preserves_its_stored_expression() {
+        let ctx = Context::default();
+        let directory = tempfile::tempdir().unwrap();
+        let mut app = test_app(&ctx, directory.path().into());
+        let model = load(
+            "tests/fixtures/dc_motor_speed_control.slx",
+            &Limits::default(),
+        )
+        .unwrap();
+        app.document = Some(Document::new(model));
+
+        app_frame(&ctx, &mut app, Some((Key::K, Modifiers::CTRL)));
+        app_frame_events(&ctx, &mut app, vec![Event::Text("BackEMF".into())]);
+        let (_, texts) = app_frame(&ctx, &mut app, None);
+        assert!(
+            texts.iter().any(|text| text.starts_with("BackEMF  ·")),
+            "{texts:?}"
+        );
+
+        app_frame(&ctx, &mut app, Some((Key::Enter, Modifiers::NONE)));
+        let (_, texts) = app_frame(&ctx, &mut app, None);
+        let doc = app.document.as_ref().unwrap();
+        let selection = doc.views[&doc.current].selected.unwrap();
+        assert_eq!(
+            doc.model.systems[doc.current.system()].blocks[selection].name,
+            "BackEMF"
+        );
+        assert!(texts.iter().any(|text| text.contains("p.Ke")), "{texts:?}");
+    }
+
+    #[test]
+    fn startup_displays_support_then_reveals_the_loaded_document() {
+        let ctx = Context::default();
+        let directory = tempfile::tempdir().unwrap();
+        let mut app = test_app(&ctx, directory.path().into());
+        let model = load(
+            "tests/fixtures/dc_motor_speed_control.slx",
+            &Limits::default(),
+        )
+        .unwrap();
+        app.document = Some(Document::new(model));
+        app.startup = Some(Startup::default());
+
+        let (_, texts) = app_frame(&ctx, &mut app, None);
+        for label in [
+            "Buy us a coffee",
+            "Inspect saved SLX diagrams, signals, and block properties",
+            "Open-source project · MIT License · Read-only",
+            "© 2026 Lambda Technologies Pty Ltd",
+        ] {
+            assert!(texts.iter().any(|text| text == label), "{label}");
+        }
+        assert!(!texts.iter().any(|text| text == "Model hierarchy"));
+
+        app.startup.as_mut().unwrap().first_frame = Some(Instant::now() - startup::DURATION);
+        let (_, texts) = app_frame(&ctx, &mut app, None);
+        assert!(app.startup.is_none());
+        assert!(texts.iter().any(|text| text == "Model hierarchy"));
+        assert!(texts.iter().any(|text| text == "dc_motor_speed_control"));
     }
 
     #[test]
@@ -1122,6 +1391,8 @@ mod tests {
         app_frame(&ctx, &mut app, Some((Key::Enter, Modifiers::NONE)));
         let (_, texts) = app_frame(&ctx, &mut app, None);
         for value in [
+            "About SLX Viewer",
+            "Buy us a coffee",
             env!("CARGO_PKG_VERSION"),
             env!("SLX_BUILD_UTC"),
             env!("SLX_BUILD_TARGET"),
@@ -1136,6 +1407,11 @@ mod tests {
         app_frame(&ctx, &mut app, Some((Key::Enter, Modifiers::NONE)));
         let (_, texts) = app_frame(&ctx, &mut app, None);
         assert!(texts.iter().any(|text| text.contains("MIT License")));
+        assert!(
+            texts
+                .iter()
+                .any(|text| text.contains("Lambda Technologies Pty Ltd"))
+        );
         assert!(
             texts
                 .iter()
