@@ -32,11 +32,14 @@ Follow the feature list with a [Windows app capture](public/assets/pid-control-c
 
 ### 1.2.3 Download and get started
 
-Label the package **Windows x64 · ZIP**. Use the stable **Download for Windows x64** link so users receive the latest published package without a site update. Provide a **Release notes and SHA-256** link to the GitHub release page. GitHub Actions builds and publishes the ZIP and checksum.
+Label the package **Windows x64 · ZIP · Unsigned executables**. Use the stable **Download for Windows x64** link so users receive the latest published package without a site update. Provide a **Release notes and SHA-256** link to the GitHub release page. GitHub Actions builds and publishes the ZIP and checksum. Explain near the download that Microsoft Defender SmartScreen may show **Windows protected your PC** and **Unknown publisher**, and that Smart App Control or managed Windows policy may block launch.
 
-1. Download and extract the ZIP.
-2. Open `slx_viewer_desktop.exe`.
-3. Choose **File > Open…** or drop a local `.slx` file into the window.
+1. Download the ZIP and `SHA256SUMS.txt` from the same GitHub release.
+2. Calculate the ZIP's SHA-256 in PowerShell and compare it with the published digest. Tell users to stop and download both files again if the hashes differ.
+3. After a match, extract the ZIP and open `slx_viewer_desktop.exe`.
+4. Choose **File > Open…** or drop a local `.slx` file into the window.
+
+Explain that a match confirms the ZIP's integrity against the published digest. Link the hero download note to the verification instructions.
 
 Mention `slx_viewer.exe` as the bundled command-line tool for printing a summary of a local model. Use the GitHub release page as the source of truth for any displayed version number, release date, or package size.
 

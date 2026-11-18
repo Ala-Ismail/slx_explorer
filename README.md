@@ -2,7 +2,7 @@
 
 **Windows x64** · [Download latest release](https://github.com/Ala-Ismail/slx_viewer/releases/latest/download/slx_viewer-windows-x64.zip) · [Release notes and checksums](https://github.com/Ala-Ismail/slx_viewer/releases) · [GitHub Actions builds](https://github.com/Ala-Ismail/slx_viewer/actions/workflows/windows.yml)
 
-Extract the release ZIP, then run `slx_viewer_desktop.exe`. Use **File > Open…** or drop a local `.slx` file onto the window. The ZIP also includes `slx_viewer.exe` for command-line summaries.
+The Windows executables are unsigned. [Verify the ZIP checksum and read about Windows warnings](#123-verify-the-windows-download) before extracting and running `slx_viewer_desktop.exe`. The ZIP also includes `slx_viewer.exe` for command-line summaries.
 
 ## 1.1 Overview
 
@@ -36,7 +36,7 @@ Dependency and font notices are embedded in the executable and shown under **Hel
 
 The **Windows build** workflow runs on pushes to `main`, pull requests, version tags (`v*`), and manual dispatch. It checks formatting, Clippy, and tests before building Windows x64 release executables with the locked dependencies.
 
-Open the repository's **Actions > Windows build**, select a successful run, and download **slx_viewer-windows-x64** under **Artifacts**. Extract the downloaded artifact, then extract `slx_viewer-windows-x64.zip` and launch `slx_viewer_desktop.exe`. The package also contains the command-line executable, README, license, third-party notices, and a separate ZIP checksum. Artifacts are retained for 14 days.
+Open the repository's **Actions > Windows build**, select a successful run, and download **slx_viewer-windows-x64** under **Artifacts**. Extract the outer artifact to get `slx_viewer-windows-x64.zip` and `SHA256SUMS.txt`, then verify the inner ZIP using section 1.2.3. Artifacts are retained for 14 days.
 
 To publish a release, commit the new version in `Cargo.toml` and `Cargo.lock` on `main`. Create an annotated tag matching that version and push the branch and tag together. Substitute the version you are releasing for `X.Y.Z`.
 
@@ -47,6 +47,20 @@ git push --atomic origin main "refs/tags/$tag"
 ```
 
 A successful tagged build creates a GitHub Release with the ZIP and SHA-256 checksum under **Releases > Assets**. The release job uses GitHub's automatic token with permission to write repository contents. The workflow does not perform native GUI or clean-machine acceptance testing.
+
+### 1.2.3 Verify the Windows download
+
+1. Download `slx_viewer-windows-x64.zip` and `SHA256SUMS.txt` from the same GitHub release. [Latest GitHub release](https://github.com/Ala-Ismail/slx_viewer/releases/latest)
+2. Open PowerShell in the download folder and calculate the ZIP's SHA-256. [Microsoft Get-FileHash documentation](https://learn.microsoft.com/en-us/powershell/module/microsoft.powershell.utility/get-filehash?view=powershell-5.1)
+
+   ```powershell
+   Get-FileHash -LiteralPath .\slx_viewer-windows-x64.zip -Algorithm SHA256
+   ```
+
+3. Compare the `Hash` result with the hash beside `slx_viewer-windows-x64.zip` in `SHA256SUMS.txt`. Letter case can differ. If the hashes differ, stop and download both files again from the same release.
+4. Once the hashes match, extract the ZIP and run `slx_viewer_desktop.exe`.
+
+A matching checksum confirms that the ZIP matches the published digest. The desktop and command-line executables are unsigned. Microsoft Defender SmartScreen may show **Windows protected your PC** and list the publisher as **Unknown publisher**. Smart App Control or your organization's Windows policy may block the app. [Microsoft SmartScreen guidance](https://learn.microsoft.com/windows/apps/package-and-deploy/smartscreen-reputation)
 
 ## 1.3 Open a model
 
@@ -123,6 +137,8 @@ Release candidate `0.2.0`, `x86_64-pc-windows-msvc`, Windows build 26300. Earlie
 | Automated tests | Pass | Eleven integration tests and seventeen desktop tests across all targets and features, using the retained motor fixture and synthetic cases |
 | Locked Windows x64 release build | Pass | Built the CLI and desktop executables under `target\x86_64-pc-windows-msvc\release` with the GitHub Actions build command |
 | Local Windows ZIP smoke test | Pass | Verified the package contents and SHA-256, extracted both executables, and opened the saved motor fixture with each. The fixture hash was unchanged |
+| Published v0.2.0 ZIP integrity and signing status | Pass | The GitHub release ZIP matched its published SHA-256 on Windows. `Get-AuthenticodeSignature` returned `NotSigned` for both extracted executables |
+| SmartScreen and Smart App Control prompts | Not run | Download guidance describes Microsoft's documented behavior. Prompt appearance on a clean or managed Windows device was not tested |
 | Native launch and file picker | Pass | On an isolated Windows desktop, File > Open selected a fixture through the native dialog. After restart, Open Recent reopened the saved path. Settings retained two unique paths and the dark preference |
 | T02 parser content | Pass for listed fixtures | Independently inspected saved XML and authored synthetic expectations cover counts, identity, hierarchy, properties, port information, and connectivity |
 | T03 wire alignment | Pass for tested cases | Geometry tests verified saved branch junctions and perpendicular wire attachment at rotated and mirrored ports. Native visual review of the updated routing was not run |

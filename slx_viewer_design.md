@@ -415,6 +415,8 @@ Planned tab acceptance checks supplement the table above:
 
 ### 1.10.3 Performance and release acceptance
 
+Publish the Windows x64 ZIP alongside its SHA-256 digest in `SHA256SUMS.txt`. Show the Authenticode signing status of the distributed executables and explain the possible SmartScreen and Windows policy warnings in the download instructions. Before extracting a release candidate, verify that its ZIP matches the digest from the same release. After extraction, confirm that both executables' Authenticode status agrees with the download instructions.
+
 Measure section 1.9 targets on a recorded reference machine using a release build. Record OS, CPU, RAM, GPU, graphics backend, display scaling, and fixture hashes. Report median and worst durations from five launches and five loads, distinguishing cold and warm runs. Record frame times during a repeatable 30-second pan/zoom sequence, peak memory during loading/navigation, packaged size, and idle CPU/repaint count over 30 seconds after loading settles.
 
 Performance targets remain provisional until the reference machine and corpus are established. Report deviations explicitly; do not claim an unmeasured target passed. Document the reason for any target revision.
