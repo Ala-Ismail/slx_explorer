@@ -1,8 +1,8 @@
-# 1. SLX Viewer Website Design
+# 1. SLX Explorer Website Design
 
 ## 1.1 Purpose
 
-Build a public landing page for SLX Viewer. It should explain what the desktop app does, let Windows users find the right download, and give developers a direct route to the source and issue tracker. The website introduces the app and distributes it through GitHub Releases. Viewing models happens locally in the desktop app.
+Build a public landing page for SLX Explorer. It should explain what the desktop app does, let Windows users find the right download, and give developers a direct route to the source and issue tracker. The website introduces the app and distributes it through GitHub Releases. Viewing models happens locally in the desktop app.
 
 The primary audience is engineers and reviewers who receive a saved Simulink model and need to inspect its structure, connections, or saved properties. The secondary audience is developers evaluating or contributing to the project.
 
@@ -12,7 +12,7 @@ Use a single page with anchor navigation for **Features**, **Download**, and **O
 
 ### 1.2.1 Introduction
 
-- **Heading** — SLX Viewer
+- **Heading** — SLX Explorer
 - **Description** — An open-source Windows app for inspecting saved Simulink models.
 - **Supporting line** — Browse diagrams, follow signals, and read stored block properties offline. Released under the MIT License.
 - **Visual** — Show a three-image slideshow covering an automotive engine blueprint with a mock SLX control diagram, a realistic wind turbine close-up with an integrated blueprint cutaway, and a realistic race car with a mock Stateflow-style diagram.
@@ -43,7 +43,7 @@ Explain that a match confirms the ZIP's integrity against the published digest. 
 
 Mention `slx_viewer.exe` as the bundled command-line tool for printing a summary of a local model. Use the GitHub release page as the source of truth for any displayed version number, release date, or package size.
 
-Place the coffee link below the download actions. Use the message “Like SLX Viewer? You can support its development. The download is free and support is optional.”
+Place the coffee link below the download actions. Use the message “Like SLX Explorer? You can support its development. The download is free and support is optional.”
 
 ### 1.2.4 Open source and support
 
@@ -51,7 +51,7 @@ Identify the project as MIT-licensed and include **© 2026 Lambda Technologies P
 
 Use **Buy us coffee** with a simple coffee-cup icon next to the visible label. Link to the same PayPal page as the desktop app. Keep the support action separate from the free download.
 
-State in the footer that SLX Viewer is a clean-room implementation developed independently of MathWorks, the maker of MATLAB and Simulink. Link to the third-party notices.
+State in the footer that SLX Explorer is a clean-room implementation developed independently of MathWorks, the maker of MATLAB and Simulink. Link to the third-party notices.
 
 ### 1.2.5 Common questions
 
@@ -80,13 +80,13 @@ Use a consistent 3:2 crop and label the example diagrams as mock models. Advance
 
 | Label | Destination |
 | --- | --- |
-| Download for Windows x64 | [Latest Windows x64 ZIP](https://github.com/Ala-Ismail/slx_viewer/releases/latest/download/slx_viewer-windows-x64.zip) |
-| Release notes and SHA-256 | [Latest GitHub release](https://github.com/Ala-Ismail/slx_viewer/releases/latest) |
-| All releases | [GitHub Releases](https://github.com/Ala-Ismail/slx_viewer/releases) |
-| View source on GitHub | [SLX Viewer repository](https://github.com/Ala-Ismail/slx_viewer) |
-| License | [MIT License](https://github.com/Ala-Ismail/slx_viewer/blob/main/LICENSE) |
-| Compatibility | [Supported layouts and limits](https://github.com/Ala-Ismail/slx_viewer#14-supported-layouts-and-limits) |
-| Report an issue | [GitHub Issues](https://github.com/Ala-Ismail/slx_viewer/issues) |
+| Download for Windows x64 | [Latest Windows x64 ZIP](https://github.com/Ala-Ismail/slx_explorer/releases/latest/download/slx_viewer-windows-x64.zip) |
+| Release notes and SHA-256 | [Latest GitHub release](https://github.com/Ala-Ismail/slx_explorer/releases/latest) |
+| All releases | [GitHub Releases](https://github.com/Ala-Ismail/slx_explorer/releases) |
+| View source on GitHub | [SLX Explorer repository](https://github.com/Ala-Ismail/slx_explorer) |
+| License | [MIT License](https://github.com/Ala-Ismail/slx_explorer/blob/main/LICENSE) |
+| Compatibility | [Supported layouts and limits](https://github.com/Ala-Ismail/slx_explorer#14-supported-layouts-and-limits) |
+| Report an issue | [GitHub Issues](https://github.com/Ala-Ismail/slx_explorer/issues) |
 | Buy us coffee | [PayPal support](https://www.paypal.com/paypalme/12dazapp) |
 
 ## 1.5 Vercel deployment
@@ -95,7 +95,7 @@ The site is static HTML and CSS. Its page, stylesheet, favicon, and visual asset
 
 | Vercel setting | Value |
 | --- | --- |
-| Git repository | `Ala-Ismail/slx_viewer` |
+| Git repository | `Ala-Ismail/slx_explorer` |
 | Root Directory | `website` |
 | Framework Preset | `Other` |
 | Build Command | Leave empty and skip the build step |

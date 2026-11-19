@@ -1,5 +1,5 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="128" height="128" viewBox="0 0 128 128" role="img" aria-labelledby="title desc">
-  <title id="title">SLX Viewer — Folded ribbon variant</title>
+  <title id="title">SLX Explorer — Folded ribbon variant</title>
   <desc id="desc">Two orange ribbons cross on a charcoal-to-slate gradient, with matching blunt folds at opposing ends.</desc>
   <defs>
     <radialGradient id="tile" cx="23%" cy="13%" r="105%">
