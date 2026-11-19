@@ -5,8 +5,8 @@ use slx_viewer::model::stateflow::{
 };
 
 use super::{
-    canvas::{self, View},
-    scene::{point, rect},
+    canvas::{self, Selection, View},
+    scene::{point, rect, segment_distance_sq},
     theme,
 };
 
@@ -93,7 +93,7 @@ impl ChartScene {
             }
             if edge.bounds.expand(tolerance).contains(point) {
                 for pair in edge.points.windows(2) {
-                    let distance = distance_sq(point, pair[0], pair[1]);
+                    let distance = segment_distance_sq(point, pair[0], pair[1]);
                     if distance <= nearest {
                         nearest = distance;
                         hit = Some(self.nodes.len() + index);
@@ -150,23 +150,13 @@ fn endpoint_position(endpoint: &ChartEndpoint) -> Option<Pos2> {
     }
 }
 
-fn distance_sq(point: Pos2, a: Pos2, b: Pos2) -> f32 {
-    let delta = b - a;
-    let length = delta.length_sq();
-    if length == 0.0 {
-        return point.distance_sq(a);
-    }
-    let fraction = ((point - a).dot(delta) / length).clamp(0.0, 1.0);
-    point.distance_sq(a + delta * fraction)
-}
-
 pub fn show(ui: &mut Ui, chart: &StateflowChart, scene: &ChartScene, view: &mut View) {
     let frame = canvas::interact(
         ui,
         view,
         |_| scene.bounds,
         None,
-        |point, scale| scene.hit(point, scale),
+        |point, scale| scene.hit(point, scale).map(Selection::ChartObject),
     );
     let painter = &frame.painter;
     let canvas = frame.rect;
@@ -181,7 +171,7 @@ pub fn show(ui: &mut Ui, chart: &StateflowChart, scene: &ChartScene, view: &mut 
         else {
             continue;
         };
-        let selected = view.selected == Some(index);
+        let selected = view.selected == Some(Selection::ChartObject(index));
         let border = match (selected, node.kind) {
             (true, _) => visuals.selection.stroke.color,
             (false, ChartNodeKind::GraphicalFunction) => theme::FUNCTION,
@@ -215,7 +205,7 @@ pub fn show(ui: &mut Ui, chart: &StateflowChart, scene: &ChartScene, view: &mut 
         if !canvas.intersects(view.screen_rect(edge.bounds, canvas).expand(8.0)) {
             continue;
         }
-        let color = if view.selected == Some(scene.nodes.len() + index) {
+        let color = if view.selected == Some(Selection::ChartObject(scene.nodes.len() + index)) {
             visuals.hyperlink_color
         } else {
             theme::WIRE

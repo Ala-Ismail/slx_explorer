@@ -34,6 +34,7 @@ Qt offers a dedicated interactive 2D scene framework, and PySide6 has deployment
 - Provide File and Help dropdown menus, recent-file access, version and build information, and a license view.
 - Use the dark color scheme defined in section 1.7.6.
 - Display blocks, labels, ports, signal lines, branches, and basic text annotations using saved layout information.
+- Select a signal net to highlight its full route and inspect its connected ports. See section 1.7.9.
 - Pan, zoom around the pointer, fit the current diagram, and select objects for inspection.
 - Browse the subsystem tree; double-click a subsystem to enter it; use breadcrumbs and back navigation.
 - Inspect stored block type, name, identifier, parameters, and reference information in a read-only panel.
@@ -190,8 +191,7 @@ Suggested layout:
 
 ```text
 +---------------------------------------------------------------+
-| SLX Viewer | File | Help                                     |
-+---------------------------------------------------------------+
+| SLX Viewer | File | Help | Model tabs                         |
 +---------------------------------------------------------------+
 | ← | ↑ | Breadcrumbs                                    Search |
 +----------------+----------------------------+-----------------+
@@ -203,7 +203,7 @@ Suggested layout:
 +---------------------------------------------------------------+
 ```
 
-Use the compact menu, tab, and navigation rows from the GUI mockup. Display the orange logo and title beside File and Help, and use a neutral grey dotted workspace with a diagram title and pan and zoom hint. Display a persistent read-only indication. Selection highlights an object. There are no resize handles, connection handles, editable property controls, or save-model commands.
+Use a compact shared row for the logo, title, File and Help menus, and model tabs. Keep the navigation toolbar below it. Use a neutral grey dotted workspace with a diagram title and pan and zoom hint. Display a persistent read-only indication. Selection highlights an object. There are no resize handles, connection handles, editable property controls, or save-model commands.
 
 Use icon buttons **←** for Back and **↑** for Up in the navigation toolbar. Provide Back and Up tooltips, keyboard-shortcut hints, and accessible names. Disable the icons when their respective navigation actions are unavailable.
 
@@ -220,6 +220,7 @@ Place **Fit**, **−**, the current zoom percentage, and **+** together at the f
 | Mouse wheel without Ctrl | Scroll vertically |
 | Shift + mouse wheel | Scroll horizontally |
 | Left click an object | Select it for inspection |
+| Left click a signal line or branch | Select its entire net |
 | Double-click a subsystem | Enter the subsystem |
 | Fit button at the bottom right | Fit the current diagram into the canvas |
 | Bottom-right −, percentage, and + controls | Zoom out, reset to 100%, or zoom in around the canvas center |
@@ -250,6 +251,8 @@ Enable entry only when the child diagram is available in the loaded model, inclu
 ### 1.7.3 Left model hierarchy panel
 
 Show a resizable, scrollable **Model Hierarchy** panel on the left of the diagram. Display the loaded model as the root and its available subsystems as nested, expandable tree nodes, including subsystems at any depth. Use indentation and expand/collapse controls to show hierarchy. Ordinary blocks remain visible in the diagram and search results; they are not tree nodes. Show an empty-state message before a model is opened.
+
+Use a scroll area that fills the available panel width and height, including when labels are short. Use compact single-line rows with narrow indentation and minimal spacing. Show selection with a contrasting flat background directly behind the current system or chart label. Use an underline for keyboard focus. Reveal the full name on hover when a label is truncated.
 
 Clicking a system name opens its diagram; the expand/collapse control only changes the tree. Highlight the system currently shown on the canvas, expand its ancestors as needed, and scroll the selected node into view when navigation occurs through a block, Esc, breadcrumbs, Back, or search. Preserve expanded nodes when navigating within a model. Opening a different model replaces the tree and resets its expansion state. Mark unavailable or unresolved subsystem contents and show a diagnostic instead of navigating to an unavailable diagram.
 
@@ -309,6 +312,7 @@ Use a dark theme by default for the entire application, including the menu bar, 
 | Connections, transitions, and arrowheads | `#D3D6DC` |
 | Block and state outlines | `#A2A6AE` |
 | Selected-object fill | `#293B4F` |
+| Selected hierarchy label background | `#41719C` |
 | Selection outlines and keyboard focus | `#9ACAFF` |
 | Logo and application name | `#F49B44` |
 | Graphical function outlines | `#A7B9FF` |
@@ -319,9 +323,9 @@ Apply these roles consistently to generic blocks, nested states, junctions, tran
 
 ### 1.7.7 Multiple SLX model tabs
 
-Initial tab support is implemented: successful opens retain previous documents, switching restores document state, canonical paths reuse existing tabs, and close buttons and Ctrl+W close tabs. The full behavior below remains the target. Queued per-tab loading, keyboard cycling, File > Close Tab, path-disambiguated labels, and T28/T29 verification remain pending. Formatting, Clippy, 23 existing tests, and the locked release build passed; native tab review and new tab acceptance tests have not run.
+Initial tab support is implemented: successful opens retain previous documents, switching restores document state, canonical paths reuse existing tabs, and close buttons and Ctrl+W close tabs. Queued per-tab loading, keyboard cycling, File > Close Tab, path-disambiguated labels, and full tab lifecycle acceptance remain pending. See the [verification report](README.md#15-verification) for the shared menu and tab row checks.
 
-Place a model tab strip between the File/Help menu bar and the navigation toolbar. File > Open, Open Recent, a dropped SLX file, and a launch path open a new tab and activate it. Opening a canonical path already present activates its existing tab instead of loading a duplicate. Allow different files with identical names; show a distinguishing parent path in their tab labels and the full path on hover. Use a horizontally scrollable strip so many tabs do not push the canvas downward. Include a visible close button and keyboard focus indication on each tab. Enclose the model name and close button within one shared tab border; neither control has a separate border. Style tabs as attached document tabs: use the display toolbar background for the active tab, retain a highlighted top and side outline, and omit its bottom border so it joins the display area. Inactive tabs use the darker strip background and a bottom divider. Keep one shared boundary around the name and close control.
+Place the model tab strip to the right of File and Help in the same row. Keep the menus visible while the tab strip scrolls horizontally in the remaining width. File > Open, Open Recent, a dropped SLX file, and a launch path open a new tab and activate it. Opening a canonical path already present activates its existing tab instead of loading a duplicate. Allow different files with identical names; show a distinguishing parent path in their tab labels and the full path on hover. Include a visible close button and keyboard focus indication on each tab. Enclose the model name and close button within one shared tab border. Use the toolbar background for the active tab with a highlighted top and side outline. Inactive tabs use the darker strip background and a bottom divider.
 
 Switching tabs restores that document's current system or Stateflow chart, Back history, selection, expanded hierarchy nodes, search state, pan, and zoom. Bind the hierarchy, breadcrumbs, properties, diagnostics, window title, status, and bottom-right Fit and zoom controls to the active tab. Keep File and Help menus available regardless of the active document. Ctrl+Tab and Ctrl+Shift+Tab cycle forward and backward through tabs, wrapping at the ends, unless a modal dialog or active control consumes the shortcut. Esc continues to navigate within the active model; it does not close a tab.
 
@@ -334,6 +338,14 @@ Retain per-model archive and XML limits and bound concurrent parsing to one work
 ### 1.7.8 Startup screen
 
 Show the orange logo, SLX Viewer title, a short description of what the read-only SLX viewer displays, its open-source MIT notice, and copyright ownership from `LICENSE` for 1.8 seconds from the first startup frame. Use the same cup icon and PayPal destination on the startup screen and in Help > About. Transition to the viewer automatically. Start loading any launch argument in the background so a completed load is ready to display when the screen ends. The timer does not block the UI thread.
+
+### 1.7.9 Signal net selection
+
+A net is one saved signal connection in the current Simulink system, including its source, shared route, branch junctions, and destination ports. Clicking any visible segment or branch junction selects the entire net. Use the rendered paths for hit testing with a fixed tolerance in logical screen pixels across zoom levels. Prefer the nearest segment when several nets are within that tolerance and use a stable draw order to break ties. A click inside a block still selects the block. Use saved connectivity to identify the selected net, so crossing wires remain independent.
+
+Highlight the full selected route with a contrasting, thicker stroke and mark the connected ports, distinguishing the source from the destinations by marker shape. Keep unrelated signals at their normal appearance. Show the saved signal name when available and list the source and every destination in the read-only properties panel, including block name and port label or kind and index. Identify unresolved endpoints explicitly. Selecting a resolved endpoint in the panel centers it in the current diagram at the existing zoom and keeps the net selected.
+
+A click on empty canvas clears the selection. Panning and zooming preserve it. Store selection with the current system and document, using the navigation behavior in sections 1.7.2 and 1.7.7. Keep each selection scoped to the saved connection in its own system, including connections that end at subsystem ports.
 
 ## 1.8 File handling and failure behavior
 
@@ -407,6 +419,7 @@ Record each criterion as Pass, Fail, or Not run, with build identifier, fixture,
 | T23 | Dark color scheme | Menus, dialogs, panels, and both diagram canvases use the specified dark roles. Text, transitions, selection, and keyboard focus remain legible at supported display scaling settings | Theme and settings checks and native visual review |
 | T27 | Navigation icons and bottom-right zoom controls | Back and Up use ← and ↑ icons with tooltips and accessible names. Fit, −, the clickable zoom percentage, and + remain anchored to the status bar's right edge while resizing. Controls operate on the active system or chart and stay visible alongside long status messages | UI input tests and native Windows layout review; passed for tested sizes, see the README verification report |
 | T30 | Startup screen | Orange branding and the support link appear at launch. The viewer replaces the screen after 1.8 seconds and shows the loaded document when it is ready | Timed UI test and Windows smoke test |
+| T31 | Select and trace a signal net | Clicking the main route or any branch highlights the same complete net, marks its source and destinations, and lists all endpoints. Crossing signals retain their normal appearance. The inspector centers a resolved endpoint and identifies unresolved endpoints. Selection stays aligned through pan and zoom, and clicking empty space clears it | Scene hit-testing, UI tests, and native review with a saved fixture. See the [verification report](README.md#15-verification) |
 
 
 Planned tab acceptance checks supplement the table above:

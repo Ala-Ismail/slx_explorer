@@ -1,8 +1,8 @@
 use std::path::PathBuf;
 
 use eframe::egui::{
-    self, Align, Button, Context, Id, Key, Layout, MenuBar, Modifiers, Popup, PopupCloseBehavior,
-    RectAlign, Response, ScrollArea, Ui,
+    self, Align, Button, Context, Id, Key, Layout, Modifiers, Popup, PopupCloseBehavior, RectAlign,
+    Response, ScrollArea, Ui,
 };
 
 const NOTICES: &str = include_str!("../../THIRD_PARTY_NOTICES.txt");
@@ -204,7 +204,8 @@ impl Menus {
         }
         let mut regions = Vec::new();
         ui.add_enabled_ui(enabled && self.dialog.is_none(), |ui| {
-            MenuBar::new().ui(ui, |ui| {
+            ui.horizontal(|ui| {
+                egui::menu::menu_style(ui.style_mut());
                 for (menu, title) in [(Menu::File, "File"), (Menu::Help, "Help")] {
                     let response = ui.selectable_label(self.active == Some(menu), title);
                     regions.push(response.rect);

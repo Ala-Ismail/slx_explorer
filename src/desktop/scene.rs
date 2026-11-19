@@ -5,11 +5,22 @@ use slx_viewer::model::{Block, Bounds, Endpoint, Port, Segment, System};
 
 pub struct Scene {
     pub blocks: Vec<Option<Rect>>,
-    pub wires: Vec<Vec<Pos2>>,
+    pub nets: Vec<SignalNet>,
     pub ports: Vec<Pos2>,
     pub labels: Vec<(Pos2, String)>,
     pub operators: Vec<(Pos2, String)>,
     pub bounds: Option<Rect>,
+}
+
+pub struct SignalNet {
+    pub paths: Vec<WirePath>,
+    pub source: Option<Pos2>,
+    pub destinations: Vec<Option<Pos2>>,
+}
+
+pub struct WirePath {
+    pub points: Vec<Pos2>,
+    pub bounds: Rect,
 }
 
 impl Scene {
@@ -21,7 +32,7 @@ impl Scene {
             .collect();
         let mut scene = Self {
             blocks: Vec::new(),
-            wires: Vec::new(),
+            nets: Vec::with_capacity(system.connections.len()),
             ports: Vec::new(),
             labels: Vec::new(),
             operators: Vec::new(),
@@ -89,9 +100,19 @@ impl Scene {
             ))
         };
         for line in &system.connections {
-            if let Some(start) = line.source.as_ref().and_then(anchor) {
-                scene.add_segment(&line.route, start.at, Some(start), &anchor);
+            let source = line.source.as_ref().and_then(anchor);
+            let mut paths = Vec::new();
+            if let Some(start) = source {
+                scene.add_segment(&line.route, start.at, Some(start), &anchor, &mut paths);
             }
+            scene.nets.push(SignalNet {
+                paths,
+                source: source.map(|port| port.at),
+                destinations: signal_segments(&line.route)
+                    .filter_map(|segment| segment.destination.as_ref())
+                    .map(|endpoint| anchor(endpoint).map(|port| port.at))
+                    .collect(),
+            });
         }
         for annotation in &system.annotations {
             match *annotation.position.as_slice() {
@@ -116,6 +137,27 @@ impl Scene {
         scene
     }
 
+    pub fn hit_net(&self, point: Pos2, scale: f32) -> Option<usize> {
+        let tolerance = 5.0 / scale;
+        let mut nearest = tolerance * tolerance;
+        let mut hit = None;
+        for (index, net) in self.nets.iter().enumerate() {
+            for path in &net.paths {
+                if !path.bounds.expand(tolerance).contains(point) {
+                    continue;
+                }
+                for pair in path.points.windows(2) {
+                    let distance = segment_distance_sq(point, pair[0], pair[1]);
+                    if distance <= nearest {
+                        nearest = distance;
+                        hit = Some(index);
+                    }
+                }
+            }
+        }
+        hit
+    }
+
     fn include(&mut self, rect: Rect) {
         self.bounds = Some(self.bounds.map_or(rect, |bounds| bounds.union(rect)));
     }
@@ -132,6 +174,7 @@ impl Scene {
         start: Pos2,
         source: Option<PortAnchor>,
         anchor: &impl Fn(&Endpoint) -> Option<PortAnchor>,
+        paths: &mut Vec<WirePath>,
     ) {
         let mut points = vec![start];
         let mut junction = start;
@@ -181,18 +224,36 @@ impl Scene {
             port.attach(&mut points);
         }
         if points.len() > 1 {
-            for &point in &points {
-                self.include(Rect::from_pos(point));
-            }
-            self.wires.push(points);
+            let bounds = Rect::from_points(&points);
+            self.include(bounds);
+            paths.push(WirePath { points, bounds });
         }
         if let Some(label) = &segment.label {
             self.add_label(start.lerp(junction, 0.5), label);
         }
         for branch in &segment.branches {
-            self.add_segment(branch, junction, None, anchor);
+            self.add_segment(branch, junction, None, anchor, paths);
         }
     }
+}
+
+pub(super) fn signal_segments(route: &Segment) -> impl Iterator<Item = &Segment> {
+    let mut pending = vec![route];
+    std::iter::from_fn(move || {
+        let segment = pending.pop()?;
+        pending.extend(segment.branches.iter().rev());
+        Some(segment)
+    })
+}
+
+pub(super) fn segment_distance_sq(point: Pos2, start: Pos2, end: Pos2) -> f32 {
+    let delta = end - start;
+    let length = delta.length_sq();
+    if length == 0.0 {
+        return point.distance_sq(start);
+    }
+    let fraction = ((point - start).dot(delta) / length).clamp(0.0, 1.0);
+    point.distance_sq(start + delta * fraction)
 }
 
 pub(super) fn point([x, y]: [f64; 2]) -> Option<Pos2> {
@@ -304,6 +365,8 @@ mod tests {
         )
         .unwrap();
         let scene = Scene::new(&model.systems[model.root]);
+        let index = scene.hit_net(pos2(1110.0, 425.0), 1.0).unwrap();
+        let net = &scene.nets[index];
         for path in [
             &[pos2(1090.0, 425.0), pos2(1130.0, 425.0)][..],
             &[pos2(1130.0, 425.0), pos2(1132.0, 425.0)],
@@ -313,7 +376,44 @@ mod tests {
                 pos2(1160.0, 570.0),
             ],
         ] {
-            assert!(scene.wires.iter().any(|wire| wire == path), "{path:?}");
+            assert!(net.paths.iter().any(|wire| wire.points == path), "{path:?}");
+        }
+        assert_eq!(scene.hit_net(pos2(1130.0, 510.0), 1.0), Some(index));
+        assert_eq!(net.source, Some(pos2(1090.0, 425.0)));
+        assert_eq!(net.destinations.len(), 3);
+        assert_eq!(net.destinations[2], Some(pos2(1160.0, 570.0)));
+    }
+
+    #[test]
+    fn crossing_nets_use_nearest_path_and_screen_space_tolerance() {
+        let mut scene = Scene::new(&System {
+            name: String::new(),
+            parent: None,
+            source_part: String::new(),
+            blocks: Vec::new(),
+            connections: Vec::new(),
+            annotations: Vec::new(),
+        });
+        scene.nets = [
+            [pos2(-100.0, 0.0), pos2(100.0, 0.0)],
+            [pos2(0.0, -100.0), pos2(0.0, 100.0)],
+        ]
+        .map(|points| SignalNet {
+            paths: vec![WirePath {
+                bounds: Rect::from_points(&points),
+                points: points.into(),
+            }],
+            source: None,
+            destinations: Vec::new(),
+        })
+        .into();
+
+        assert_eq!(scene.hit_net(pos2(4.0, 2.0), 1.0), Some(0));
+        assert_eq!(scene.hit_net(pos2(2.0, 4.0), 1.0), Some(1));
+        assert_eq!(scene.hit_net(Pos2::ZERO, 1.0), Some(1));
+        for zoom in [0.1, 1.0, 8.0] {
+            assert_eq!(scene.hit_net(pos2(80.0, 4.0 / zoom), zoom), Some(0));
+            assert_eq!(scene.hit_net(pos2(80.0, 6.0 / zoom), zoom), None);
         }
     }
 
@@ -368,7 +468,7 @@ mod tests {
         }];
 
         let scene = Scene::new(system);
-        let wire = &scene.wires[0];
+        let wire = &scene.nets[0].paths[0].points;
         assert_eq!(scene.ports, [pos2(10.0, 20.0), pos2(80.0, 60.0)]);
         assert!(wire.starts_with(&[pos2(10.0, 20.0), pos2(10.0, 28.0)]));
         assert!(

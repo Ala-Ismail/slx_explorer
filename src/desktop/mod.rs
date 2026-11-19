@@ -18,14 +18,14 @@ use eframe::egui::{
     self, Align, Context, Key, Layout, Modifiers, Panel, RichText, ScrollArea, Ui, vec2,
 };
 use slx_viewer::model::{
-    BlockIndex, Model, SystemId,
+    BlockIndex, Endpoint, Model, System, SystemId,
     stateflow::{ChartId, ChartNodeKind},
 };
 
 use self::{
-    canvas::{View, ViewAction},
+    canvas::{Selection, View, ViewAction},
     menus::{Action, Menus},
-    scene::Scene,
+    scene::{Scene, signal_segments},
     search::Search,
     settings::Settings,
     startup::Startup,
@@ -168,6 +168,105 @@ impl App {
         self.error = None;
     }
 
+    fn show_model_tabs(&self, ui: &mut Ui, enabled: bool) -> (Option<usize>, Option<usize>) {
+        let mut selected = None;
+        let mut close = None;
+        ui.scope(|ui| {
+            if !enabled {
+                ui.disable();
+            }
+            ui.set_clip_rect(ui.clip_rect().intersect(ui.available_rect_before_wrap()));
+            ScrollArea::horizontal()
+                .auto_shrink([false, true])
+                .show(ui, |ui| {
+                    ui.horizontal(|ui| {
+                        ui.spacing_mut().item_spacing.x = 2.0;
+                        for slot in 0..self.tabs.len() + usize::from(self.current_path.is_some()) {
+                            let active = self.current_path.is_some() && slot == self.active_slot;
+                            let index = if slot > self.active_slot {
+                                slot - 1
+                            } else {
+                                slot
+                            };
+                            let path = if active {
+                                self.current_path.as_ref().unwrap()
+                            } else {
+                                &self.tabs[index].path
+                            };
+                            ui.push_id(path, |ui| {
+                                let visuals = ui.visuals();
+                                let fill = if active {
+                                    theme::TOOLBAR
+                                } else {
+                                    theme::CHROME
+                                };
+                                let stroke = if active {
+                                    visuals.selection.stroke
+                                } else {
+                                    visuals.widgets.inactive.bg_stroke
+                                };
+                                let tab = egui::Frame::new()
+                                    .fill(fill)
+                                    .corner_radius(egui::CornerRadius {
+                                        nw: 4,
+                                        ne: 4,
+                                        sw: 0,
+                                        se: 0,
+                                    })
+                                    .inner_margin(egui::Margin::symmetric(6, 2))
+                                    .show(ui, |ui| {
+                                        ui.horizontal(|ui| {
+                                            ui.label(RichText::new("□").color(theme::FOCUS));
+                                            if ui
+                                                .add(
+                                                    egui::Button::new(
+                                                        path.file_name()
+                                                            .unwrap_or_default()
+                                                            .to_string_lossy(),
+                                                    )
+                                                    .frame(false),
+                                                )
+                                                .on_hover_text(path.display().to_string())
+                                                .clicked()
+                                                && !active
+                                            {
+                                                selected = Some(index);
+                                            }
+                                            if ui
+                                                .add(egui::Button::new("×").frame(false))
+                                                .on_hover_text("Close tab (Ctrl+W)")
+                                                .clicked()
+                                            {
+                                                close = Some(if active {
+                                                    self.tabs.len()
+                                                } else {
+                                                    index
+                                                });
+                                            }
+                                        });
+                                    });
+                                let bounds = tab.response.rect;
+                                let outline = vec![
+                                    bounds.left_bottom(),
+                                    bounds.left_top(),
+                                    bounds.right_top(),
+                                    bounds.right_bottom(),
+                                ];
+                                ui.painter().add(egui::Shape::line(outline, stroke));
+                                if !active {
+                                    ui.painter().line_segment(
+                                        [bounds.left_bottom(), bounds.right_bottom()],
+                                        egui::Stroke::new(1.0, theme::DIVIDER),
+                                    );
+                                }
+                            });
+                        }
+                    });
+                });
+        });
+        (selected, close)
+    }
+
     fn contents(&mut self, ui: &mut Ui) -> bool {
         if let Some(path) = ui.input_mut(|input| {
             std::mem::take(&mut input.raw.dropped_files)
@@ -184,6 +283,8 @@ impl App {
         }
         let mut menu_action = None;
         let mut menu_blocked = false;
+        let mut selected = None;
+        let mut close = None;
         Panel::top("menubar")
             .exact_size(42.0)
             .frame(theme::bar(theme::CHROME))
@@ -197,6 +298,15 @@ impl App {
                         &self.settings.preferences.recent,
                         !self.show_diagnostics,
                     );
+                    if self.current_path.is_some() {
+                        chrome_divider(ui);
+                        (selected, close) = self.show_model_tabs(
+                            ui,
+                            menu_action.is_none()
+                                && !self.show_diagnostics
+                                && !self.menus.modal_open(),
+                        );
+                    }
                 });
             });
         let mut open = !self.show_diagnostics
@@ -212,113 +322,6 @@ impl App {
         }
         {
             let tabs_enabled = !self.show_diagnostics && !self.menus.modal_open();
-            let mut selected = None;
-            let mut close = None;
-            Panel::top("model-tabs")
-                .exact_size(36.0)
-                .frame(
-                    egui::Frame::new()
-                        .fill(theme::CHROME)
-                        .inner_margin(egui::Margin {
-                            left: 8,
-                            right: 8,
-                            top: 4,
-                            bottom: 0,
-                        }),
-                )
-                .show(ui, |ui| {
-                    if !tabs_enabled {
-                        ui.disable();
-                    }
-                    ScrollArea::horizontal().show(ui, |ui| {
-                        ui.horizontal(|ui| {
-                            ui.spacing_mut().item_spacing.x = 2.0;
-                            for slot in
-                                0..self.tabs.len() + usize::from(self.current_path.is_some())
-                            {
-                                let active =
-                                    self.current_path.is_some() && slot == self.active_slot;
-                                let index = if slot > self.active_slot {
-                                    slot - 1
-                                } else {
-                                    slot
-                                };
-                                let path = if active {
-                                    self.current_path.as_ref().unwrap()
-                                } else {
-                                    &self.tabs[index].path
-                                };
-                                ui.push_id(path, |ui| {
-                                    let visuals = ui.visuals();
-                                    let fill = if active {
-                                        theme::TOOLBAR
-                                    } else {
-                                        theme::CHROME
-                                    };
-                                    let stroke = if active {
-                                        visuals.selection.stroke
-                                    } else {
-                                        visuals.widgets.inactive.bg_stroke
-                                    };
-                                    let tab = egui::Frame::new()
-                                        .fill(fill)
-                                        .corner_radius(egui::CornerRadius {
-                                            nw: 4,
-                                            ne: 4,
-                                            sw: 0,
-                                            se: 0,
-                                        })
-                                        .inner_margin(egui::Margin::symmetric(6, 2))
-                                        .show(ui, |ui| {
-                                            ui.horizontal(|ui| {
-                                                ui.label(RichText::new("□").color(theme::FOCUS));
-                                                if ui
-                                                    .add(
-                                                        egui::Button::new(
-                                                            path.file_name()
-                                                                .unwrap_or_default()
-                                                                .to_string_lossy(),
-                                                        )
-                                                        .frame(false),
-                                                    )
-                                                    .on_hover_text(path.display().to_string())
-                                                    .clicked()
-                                                    && !active
-                                                {
-                                                    selected = Some(index);
-                                                }
-                                                if ui
-                                                    .add(egui::Button::new("×").frame(false))
-                                                    .on_hover_text("Close tab (Ctrl+W)")
-                                                    .clicked()
-                                                {
-                                                    close = Some(if active {
-                                                        self.tabs.len()
-                                                    } else {
-                                                        index
-                                                    });
-                                                }
-                                            });
-                                        });
-                                    let bounds = tab.response.rect;
-                                    let outline = vec![
-                                        bounds.left_bottom(),
-                                        bounds.left_top(),
-                                        bounds.right_top(),
-                                        bounds.right_bottom(),
-                                    ];
-                                    ui.painter().add(egui::Shape::line(outline, stroke));
-                                    if !active {
-                                        ui.painter().line_segment(
-                                            [bounds.left_bottom(), bounds.right_bottom()],
-                                            egui::Stroke::new(1.0, theme::DIVIDER),
-                                        );
-                                    }
-                                });
-                            }
-                        });
-                    });
-                });
             if tabs_enabled && ui.input_mut(|input| input.consume_key(Modifiers::CTRL, Key::W)) {
                 close = Some(self.tabs.len());
             }
@@ -450,15 +453,19 @@ impl App {
         Panel::left("hierarchy")
             .default_size((width * 0.18).clamp(170.0, 250.0))
             .size_range(145.0..=(width * 0.26).max(170.0))
-            .frame(theme::bar(theme::PANEL).inner_margin(egui::Margin::symmetric(12, 6)))
+            .frame(theme::bar(theme::PANEL).inner_margin(egui::Margin::symmetric(8, 4)))
             .resizable(true)
             .show(ui, |ui| {
-                panel_heading(ui, "Model hierarchy");
+                ui.spacing_mut().item_spacing = vec2(3.0, 1.0);
+                ui.spacing_mut().interact_size.y = 16.0;
+                ui.spacing_mut().indent = 12.0;
+                ui.strong("Model hierarchy");
+                ui.separator();
                 if let Some(document) = document.as_mut() {
-                    let mut target = None;
-                    ScrollArea::vertical().show(ui, |ui| {
-                        target = document.tree(ui, document.model.root);
-                    });
+                    let target = ScrollArea::vertical()
+                        .auto_shrink([false, false])
+                        .show(ui, |ui| document.tree(ui, document.model.root))
+                        .inner;
                     document.reveal_tree_selection = false;
                     if let Some(target) = target {
                         document.navigate(target);
@@ -474,7 +481,7 @@ impl App {
             .resizable(true)
             .show(ui, |ui| {
                 panel_heading(ui, "Properties");
-                if let Some(document) = document.as_ref() {
+                if let Some(document) = document.as_mut() {
                     document.properties(ui);
                 } else {
                     ui.weak("Open a model to inspect blocks.");
@@ -534,6 +541,21 @@ fn panel_heading(ui: &mut Ui, heading: &str) {
         },
     );
     ui.separator();
+}
+
+const TREE_DISCLOSURE_WIDTH: f32 = 11.0;
+
+fn hierarchy_label(ui: &mut Ui, name: &str, selected: bool) -> egui::Response {
+    let mut text = RichText::new(name);
+    if selected {
+        text = text.background_color(theme::HIERARCHY_SELECTION);
+    }
+    ui.add(
+        egui::Label::new(text)
+            .truncate()
+            .selectable(false)
+            .sense(egui::Sense::click()),
+    )
 }
 
 fn chrome_divider(ui: &mut Ui) {
@@ -699,7 +721,7 @@ impl Document {
         let location = Location::System(system);
         self.navigate(location);
         let view = self.views.entry(location).or_default();
-        view.selected = Some(block);
+        view.selected = Some(Selection::Block(block));
         view.reveal = Some(block);
     }
 
@@ -858,16 +880,22 @@ impl Document {
         let mut result = None;
         ui.horizontal(|ui| {
             if children.is_empty() {
-                ui.add_space(22.0);
+                ui.allocate_space(vec2(TREE_DISCLOSURE_WIDTH, 0.0));
             } else {
-                let icon = if self.expanded.contains(&system) {
-                    "▾"
+                let (icon, hint) = if self.expanded.contains(&system) {
+                    ("−", "Collapse")
                 } else {
-                    "▸"
+                    ("+", "Expand")
                 };
                 if ui
-                    .add_sized([16.0, 25.0], egui::Button::new(icon).frame(false))
-                    .on_hover_text("Expand or collapse")
+                    .add_sized(
+                        [TREE_DISCLOSURE_WIDTH, ui.spacing().interact_size.y],
+                        egui::Label::new(icon)
+                            .halign(Align::Center)
+                            .selectable(false)
+                            .sense(egui::Sense::click()),
+                    )
+                    .on_hover_text(hint)
                     .clicked()
                     && !self.expanded.remove(&system)
                 {
@@ -875,14 +903,7 @@ impl Document {
                 }
             }
             let selected = Location::System(system) == self.current;
-            let label = ui
-                .add_sized(
-                    [ui.available_width(), 27.0],
-                    egui::Button::selectable(selected, "")
-                        .left_text(node.name.as_str())
-                        .truncate(),
-                )
-                .on_hover_text(&node.name);
+            let label = hierarchy_label(ui, &node.name, selected);
             if self.reveal_tree_selection && selected {
                 label.scroll_to_me(None);
             }
@@ -897,10 +918,9 @@ impl Document {
                         Some(Location::System(child)) => result = self.tree(ui, child).or(result),
                         Some(target @ Location::Chart { .. }) => {
                             ui.horizontal(|ui| {
-                                ui.add_space(22.0);
+                                ui.allocate_space(vec2(TREE_DISCLOSURE_WIDTH, 0.0));
                                 let selected = self.current == target;
-                                let label = ui
-                                    .selectable_label(selected, name)
+                                let label = hierarchy_label(ui, &name, selected)
                                     .on_hover_text("Stateflow chart");
                                 if selected && self.reveal_tree_selection {
                                     label.scroll_to_me(None);
@@ -911,8 +931,14 @@ impl Document {
                             });
                         }
                         None => {
-                            ui.add_enabled(false, egui::Button::new(name).frame(false))
+                            ui.horizontal(|ui| {
+                                ui.allocate_space(vec2(TREE_DISCLOSURE_WIDTH, 0.0));
+                                ui.add_enabled(
+                                    false,
+                                    egui::Label::new(name).truncate().selectable(false),
+                                )
                                 .on_disabled_hover_text("No saved child diagram is available");
+                            });
                         }
                     }
                 }
@@ -921,17 +947,29 @@ impl Document {
         result
     }
 
-    fn properties(&self, ui: &mut Ui) {
+    fn properties(&mut self, ui: &mut Ui) {
         let selected = self.views.get(&self.current).and_then(|view| view.selected);
         if let Location::Chart { owner, block } = self.current {
+            let selected = match selected {
+                Some(Selection::ChartObject(index)) => Some(index),
+                _ => None,
+            };
             self.chart_properties(ui, self.chart_id(owner, block), selected);
             return;
         }
-        let system = &self.model.systems[self.current.system()];
-        let Some(block) = selected.map(|index| &system.blocks[index]) else {
-            ui.weak("Select a block to inspect its stored properties.");
+        let id = self.current.system();
+        if let Some(Selection::Net(index)) = selected {
+            if let Some(point) = self.net_properties(ui, id, index) {
+                self.views.entry(self.current).or_default().action =
+                    Some(ViewAction::Center(point));
+            }
+            return;
+        }
+        let Some(Selection::Block(index)) = selected else {
+            ui.weak("Select a block or signal line to inspect it.");
             return;
         };
+        let block = &self.model.systems[id].blocks[index];
         ScrollArea::vertical().show(ui, |ui| {
             ui.label(RichText::new(&block.name).size(16.0).strong());
             ui.weak(&block.block_type);
@@ -953,6 +991,45 @@ impl Document {
                 }
             }
         });
+    }
+
+    fn net_properties(&self, ui: &mut Ui, id: SystemId, index: usize) -> Option<egui::Pos2> {
+        let system = &self.model.systems[id];
+        let signal = &system.connections[index];
+        let net = &self.scenes[&id].nets[index];
+        let name = signal_segments(&signal.route)
+            .filter_map(|segment| segment.label.as_deref())
+            .find(|label| !label.trim().is_empty());
+        ScrollArea::vertical()
+            .show(ui, |ui| {
+                ui.label(
+                    RichText::new(name.unwrap_or("Signal net"))
+                        .size(16.0)
+                        .strong(),
+                );
+                ui.separator();
+                ui.strong("Source");
+                let mut center = if let Some(source) = &signal.source {
+                    endpoint_row(ui, system, source, net.source)
+                } else {
+                    ui.weak("Unresolved source (no saved endpoint)");
+                    None
+                };
+                ui.separator();
+                ui.strong("Destinations");
+                if net.destinations.is_empty() {
+                    ui.weak("No saved destinations");
+                }
+                let destinations = signal_segments(&signal.route)
+                    .filter_map(|segment| segment.destination.as_ref());
+                for (endpoint, &position) in destinations.zip(&net.destinations) {
+                    if let Some(point) = endpoint_row(ui, system, endpoint, position) {
+                        center = Some(point);
+                    }
+                }
+                center
+            })
+            .inner
     }
 
     fn workspace(&mut self, ui: &mut Ui) {
@@ -1060,6 +1137,38 @@ impl Document {
     }
 }
 
+fn endpoint_row(
+    ui: &mut Ui,
+    system: &System,
+    endpoint: &Endpoint,
+    position: Option<egui::Pos2>,
+) -> Option<egui::Pos2> {
+    let (Some(block), Some(port)) = (endpoint.block, &endpoint.port) else {
+        ui.colored_label(
+            ui.visuals().warn_fg_color,
+            format!("Unresolved endpoint: {}", endpoint.raw),
+        );
+        return None;
+    };
+    let label = format!(
+        "{} · {} {}",
+        system.blocks[block].name, port.kind, port.index
+    );
+    if let Some(position) = position {
+        if ui
+            .link(label)
+            .on_hover_text("Center this port in the diagram")
+            .clicked()
+        {
+            return Some(position);
+        }
+    } else {
+        ui.label(label);
+        ui.weak("Port position unavailable");
+    }
+    None
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -1106,18 +1215,7 @@ mod tests {
     }
 
     fn app_frame_events(ctx: &Context, app: &mut App, events: Vec<Event>) -> (bool, Vec<String>) {
-        let mut open = false;
-        let mut output = ctx.run_ui(
-            RawInput {
-                screen_rect: Some(Rect::from_min_size(Pos2::ZERO, vec2(1200.0, 800.0))),
-                events,
-                focused: true,
-                ..Default::default()
-            },
-            |ui| {
-                open |= app.contents(ui);
-            },
-        );
+        let (open, output) = run_app_frame(ctx, app, events);
         fn texts(shape: &Shape, result: &mut Vec<String>) {
             match shape {
                 Shape::Text(text) => result.push(text.galley.text().into()),
@@ -1133,8 +1231,229 @@ mod tests {
         for shape in &output.shapes {
             texts(&shape.shape, &mut result);
         }
-        output.textures_delta.clear();
         (open, result)
+    }
+
+    fn run_app_frame(ctx: &Context, app: &mut App, events: Vec<Event>) -> (bool, egui::FullOutput) {
+        let mut open = false;
+        let mut output = ctx.run_ui(
+            RawInput {
+                screen_rect: Some(Rect::from_min_size(Pos2::ZERO, vec2(1200.0, 800.0))),
+                events,
+                focused: true,
+                ..Default::default()
+            },
+            |ui| {
+                open |= app.contents(ui);
+            },
+        );
+        output.textures_delta.clear();
+        (open, output)
+    }
+
+    #[test]
+    fn hierarchy_scrolls_at_the_panel_edge_with_short_labels() {
+        use egui::{MouseWheelUnit, TouchPhase, pos2};
+        use slx_viewer::model::Block;
+
+        let ctx = Context::default();
+        let directory = tempfile::tempdir().unwrap();
+        let mut app = test_app(&ctx, directory.path().into());
+        let mut model = load(
+            "tests/fixtures/dc_motor_speed_control.slx",
+            &Limits::default(),
+        )
+        .unwrap();
+        let system = &mut model.systems[model.root];
+        system.name = "Root".into();
+        system.blocks = (0..80)
+            .map(|index| Block {
+                sid: index.to_string(),
+                name: format!("S{index:02}"),
+                block_type: "SubSystem".into(),
+                bounds: None,
+                rotation_degrees: 0,
+                mirrored: false,
+                port_counts: Default::default(),
+                ports: Vec::new(),
+                properties: Default::default(),
+                child: None,
+                chart: None,
+            })
+            .collect();
+        system.connections.clear();
+        app.document = Some(Document::new(model));
+        let (_, texts) = app_frame(&ctx, &mut app, None);
+        assert!(texts.iter().any(|text| text == "S00"));
+
+        app_frame_events(
+            &ctx,
+            &mut app,
+            vec![
+                Event::PointerMoved(pos2(198.0, 350.0)),
+                Event::MouseWheel {
+                    unit: MouseWheelUnit::Point,
+                    delta: vec2(0.0, -600.0),
+                    modifiers: Modifiers::NONE,
+                    phase: TouchPhase::Move,
+                },
+            ],
+        );
+        for _ in 0..10 {
+            let (_, texts) = app_frame(&ctx, &mut app, None);
+            if !texts.iter().any(|text| text == "S00") {
+                return;
+            }
+        }
+        panic!("the hierarchy should scroll from the right side of the panel");
+    }
+
+    #[test]
+    fn selecting_a_signal_branch_highlights_the_net_and_inspects_endpoints() {
+        use egui::{MouseWheelUnit, TouchPhase, pos2};
+        use slx_viewer::model::Segment;
+
+        let ctx = Context::default();
+        let directory = tempfile::tempdir().unwrap();
+        let mut app = test_app(&ctx, directory.path().into());
+        let mut model = load(
+            "tests/fixtures/dc_motor_speed_control.slx",
+            &Limits::default(),
+        )
+        .unwrap();
+        let root = model.root;
+        let index = model.systems[root]
+            .connections
+            .iter()
+            .position(|signal| {
+                signal
+                    .source
+                    .as_ref()
+                    .is_some_and(|port| port.raw == "14#out:1")
+            })
+            .unwrap();
+        let route = &mut model.systems[root].connections[index].route;
+        route.label = Some("Motor current".into());
+        route.branches.push(Segment {
+            destination: Some(Endpoint {
+                raw: "missing#in:1".into(),
+                block: None,
+                port: None,
+            }),
+            offsets: vec![[-30.0, -35.0]],
+            label: None,
+            branches: Vec::new(),
+        });
+        let location = Location::System(root);
+        app.document = Some(Document::new(model));
+        let click = |app: &mut App, pos| {
+            let button = |pressed| Event::PointerButton {
+                pos,
+                button: PointerButton::Primary,
+                pressed,
+                modifiers: Modifiers::NONE,
+            };
+            run_app_frame(&ctx, app, vec![Event::PointerMoved(pos), button(true)]);
+            run_app_frame(&ctx, app, vec![button(false)]).1
+        };
+        let (_, output) = run_app_frame(&ctx, &mut app, Vec::new());
+        let canvas = output
+            .shapes
+            .iter()
+            .find(|shape| matches!(shape.shape, Shape::LineSegment { stroke, .. } if stroke == egui::Stroke::new(1.25, theme::WIRE)))
+            .unwrap()
+            .clip_rect;
+        let doc = app.document.as_ref().unwrap();
+        let branch = doc.views[&location].screen(pos2(1130.0, 510.0), canvas);
+        let output = click(&mut app, branch);
+        let doc = app.document.as_ref().unwrap();
+        assert_eq!(doc.views[&location].selected, Some(Selection::Net(index)));
+        let net = &doc.scenes[&root].nets[index];
+        let highlight = egui::Stroke::new(3.0, theme::FOCUS);
+        assert_eq!(
+            output.shapes.iter().filter(|shape| matches!(shape.shape, Shape::LineSegment { stroke, .. } if stroke == highlight)).count(),
+            net.paths.iter().map(|path| path.points.len() - 1).sum::<usize>()
+        );
+        assert!(output.shapes.iter().any(|shape| matches!(shape.shape, Shape::LineSegment { stroke, .. } if stroke == egui::Stroke::new(1.25, theme::WIRE))));
+        assert_eq!(
+            output.shapes.iter().filter(|shape| matches!(&shape.shape, Shape::Circle(marker) if marker.radius == 4.0 && marker.stroke.color == theme::FOCUS)).count(),
+            3
+        );
+        assert!(output.shapes.iter().any(|shape| matches!(&shape.shape, Shape::Path(marker) if marker.fill == theme::FOCUS && marker.points.len() == 4)));
+
+        let log_port = net.destinations[2].unwrap();
+        let zoom = doc.views[&location].percent();
+        let (_, output) = run_app_frame(&ctx, &mut app, Vec::new());
+        let labels: Vec<_> = output
+            .shapes
+            .iter()
+            .filter_map(|shape| match &shape.shape {
+                Shape::Text(text) => Some(text),
+                _ => None,
+            })
+            .collect();
+        for expected in [
+            "Motor current",
+            "ArmatureCurrent · out 1",
+            "Resistance · in 1",
+            "MotorTorque · in 1",
+            "LogCurrent · in 1",
+            "Unresolved endpoint: missing#in:1",
+        ] {
+            assert!(
+                labels.iter().any(|text| text.galley.text() == expected),
+                "missing inspector label {expected}"
+            );
+        }
+        let link = labels
+            .iter()
+            .find(|text| text.galley.text() == "LogCurrent · in 1")
+            .unwrap();
+        let link_center = Rect::from_min_size(link.pos, link.galley.size()).center();
+        click(&mut app, link_center);
+        let view = &app.document.as_ref().unwrap().views[&location];
+        assert_eq!(view.selected, Some(Selection::Net(index)));
+        assert_eq!(view.percent(), zoom);
+        assert!(view.screen(log_port, canvas).distance(canvas.center()) < 1.0);
+
+        run_app_frame(
+            &ctx,
+            &mut app,
+            vec![
+                Event::PointerMoved(canvas.center()),
+                Event::MouseWheel {
+                    unit: MouseWheelUnit::Point,
+                    delta: vec2(0.0, 50.0),
+                    modifiers: Modifiers::CTRL,
+                    phase: TouchPhase::Move,
+                },
+            ],
+        );
+        let view = &app.document.as_ref().unwrap().views[&location];
+        assert_eq!(view.selected, Some(Selection::Net(index)));
+        assert!(view.percent() > zoom);
+        assert!(view.screen(log_port, canvas).distance(canvas.center()) < 1.0);
+
+        let start = canvas.center();
+        let end = start + vec2(0.0, 40.0);
+        let middle_button = |pos, pressed| Event::PointerButton {
+            pos,
+            button: PointerButton::Middle,
+            pressed,
+            modifiers: Modifiers::NONE,
+        };
+        run_app_frame(&ctx, &mut app, vec![middle_button(start, true)]);
+        run_app_frame(&ctx, &mut app, vec![Event::PointerMoved(end)]);
+        run_app_frame(&ctx, &mut app, vec![middle_button(end, false)]);
+        let view = &app.document.as_ref().unwrap().views[&location];
+        assert_eq!(view.selected, Some(Selection::Net(index)));
+        assert!(view.screen(log_port, canvas).distance(end) < 1.0);
+
+        click(&mut app, canvas.max - vec2(12.0, 12.0));
+        assert_eq!(
+            app.document.as_ref().unwrap().views[&location].selected,
+            None
+        );
     }
 
     #[test]
@@ -1160,7 +1479,9 @@ mod tests {
         app_frame(&ctx, &mut app, Some((Key::Enter, Modifiers::NONE)));
         let (_, texts) = app_frame(&ctx, &mut app, None);
         let doc = app.document.as_ref().unwrap();
-        let selection = doc.views[&doc.current].selected.unwrap();
+        let Some(Selection::Block(selection)) = doc.views[&doc.current].selected else {
+            panic!("search should select a block");
+        };
         assert_eq!(
             doc.model.systems[doc.current.system()].blocks[selection].name,
             "BackEMF"
@@ -1241,6 +1562,74 @@ mod tests {
         }
         app.open("A.slx".into());
         assert_eq!(app.active_slot, 0);
+    }
+
+    #[test]
+    fn model_tabs_share_the_menu_row_and_scroll_without_moving_menus() {
+        use egui::{MouseWheelUnit, TouchPhase};
+
+        let ctx = Context::default();
+        let directory = tempfile::tempdir().unwrap();
+        let mut app = test_app(&ctx, directory.path().into());
+        let document = || {
+            Document::new(
+                load(
+                    "tests/fixtures/dc_motor_speed_control.slx",
+                    &Limits::default(),
+                )
+                .unwrap(),
+            )
+        };
+        app.current_path = Some("Current.slx".into());
+        app.document = Some(document());
+        app.tabs = (1..=8)
+            .map(|number| SavedTab {
+                path: format!("Model {number} with a long filename.slx").into(),
+                document: document(),
+            })
+            .collect();
+
+        let label = |output: &egui::FullOutput, name: &str| {
+            output.shapes.iter().find_map(|shape| match &shape.shape {
+                Shape::Text(text) if text.galley.text() == name => {
+                    let rect = Rect::from_min_size(text.pos, text.galley.size());
+                    shape.clip_rect.contains_rect(rect).then_some(rect)
+                }
+                _ => None,
+            })
+        };
+        let (_, output) = run_app_frame(&ctx, &mut app, Vec::new());
+        let file = label(&output, "File").unwrap();
+        let help = label(&output, "Help").unwrap();
+        let current = label(&output, "Current.slx").unwrap();
+        let last = "Model 8 with a long filename.slx";
+        assert!(file.max.x < help.min.x && help.max.x < current.min.x);
+        assert!((current.center().y - file.center().y).abs() < 4.0);
+        assert!(label(&output, last).is_none());
+
+        run_app_frame(
+            &ctx,
+            &mut app,
+            vec![
+                Event::PointerMoved(current.center()),
+                Event::MouseWheel {
+                    unit: MouseWheelUnit::Point,
+                    delta: vec2(-3000.0, 0.0),
+                    modifiers: Modifiers::NONE,
+                    phase: TouchPhase::Move,
+                },
+            ],
+        );
+        for _ in 0..20 {
+            let (_, output) = run_app_frame(&ctx, &mut app, Vec::new());
+            if let Some(last_tab) = label(&output, last) {
+                assert_eq!(label(&output, "File"), Some(file));
+                assert_eq!(label(&output, "Help"), Some(help));
+                assert!(help.max.x < last_tab.min.x);
+                return;
+            }
+        }
+        panic!("the last model tab should be reachable by horizontal scrolling");
     }
 
     #[test]
@@ -1476,21 +1865,36 @@ mod tests {
         let mut document = Document::new(model);
         document.up();
         assert!(document.history.is_empty());
+        document
+            .views
+            .entry(Location::System(0))
+            .or_default()
+            .selected = Some(Selection::Net(0));
         document.navigate(Location::System(2));
         document
             .views
             .entry(Location::System(2))
             .or_default()
-            .selected = Some(3);
+            .selected = Some(Selection::Block(3));
         assert!(document.expanded.contains(&1));
         document.up();
         assert_eq!(document.current, Location::System(1));
-        assert_eq!(document.views[&Location::System(1)].selected, Some(1));
+        assert_eq!(
+            document.views[&Location::System(1)].selected,
+            Some(Selection::Block(1))
+        );
         assert_eq!(document.views[&Location::System(1)].reveal, Some(1));
         document.back();
         assert_eq!(document.current, Location::System(2));
-        assert_eq!(document.views[&Location::System(2)].selected, Some(3));
+        assert_eq!(
+            document.views[&Location::System(2)].selected,
+            Some(Selection::Block(3))
+        );
         document.back();
         assert_eq!(document.current, Location::System(0));
+        assert_eq!(
+            document.views[&Location::System(0)].selected,
+            Some(Selection::Net(0))
+        );
     }
 }

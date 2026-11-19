@@ -77,6 +77,8 @@ Use **Fit**, **−**, the zoom percentage, and **+** at the bottom right to cont
 
 Pan with the middle mouse button or by dragging empty canvas space. Click a block to inspect its saved properties. Open a subsystem from the hierarchy or by double-clicking the block. The **↑** toolbar button, **Esc**, or **Alt+Up** opens the parent. The **←** button or **Alt+Left** returns to the previously viewed system. Hover over either icon for its name and shortcut.
 
+Click a signal line or branch to highlight its entire net. A diamond marks the source and circles mark the destination ports. The **Properties** panel lists the connected ports and flags unresolved endpoints. Click a port in the list to center it in the diagram at the current zoom. Click empty canvas to clear the selection.
+
 Press **Ctrl+K** to search block names or system paths. Click a result or press **Enter** for the first match. The viewer selects the block in its diagram and shows its properties.
 
 ### 1.3.1 Command-line summary
@@ -136,7 +138,7 @@ Release candidate `0.2.0`, `x86_64-pc-windows-msvc`, Windows build 26300. Earlie
 | --- | --- | --- |
 | Rust formatting | Pass | `cargo fmt --all -- --check` |
 | Clippy | Pass | All targets and features, warnings treated as errors |
-| Automated tests | Pass | Eleven integration tests and seventeen desktop tests across all targets and features, using the retained motor fixture and synthetic cases |
+| Automated tests | Pass | Eleven integration tests and twenty-one desktop tests across all targets and features, using the retained motor fixture and synthetic cases |
 | Locked Windows x64 release build | Pass | Built the CLI and desktop executables under `target\x86_64-pc-windows-msvc\release` with the GitHub Actions build command |
 | Local Windows ZIP smoke test | Pass | Verified the package contents and SHA-256, extracted both executables, and opened the saved motor fixture with each. The fixture hash was unchanged |
 | Published v0.2.0 ZIP integrity and signing status | Pass | The GitHub release ZIP matched its published SHA-256 on Windows. `Get-AuthenticodeSignature` returned `NotSigned` for both extracted executables |
@@ -147,10 +149,13 @@ Release candidate `0.2.0`, `x86_64-pc-windows-msvc`, Windows build 26300. Earlie
 | T01, T03–T04, T08, T10, T12–T13, T15–T16, T18 | Not run in full | Native smoke and automated checks cover picker and launch paths, branch geometry, pointer-anchored zoom limits, parent and Back state, unavailable interiors, read-only file access, malformed packages, and stale or cancelled completion handling |
 | T05–T07, T09, T14, T17 | Not run in full | Manual canvas interactions, full keyboard priority, process and network observation, and clean-machine distribution remain to be verified |
 | T11 Search and inspect | Pass for tested cases | Egui keyboard test selected BackEMF from the saved motor fixture and displayed `p.Ke` literally. A separate test resolved duplicate block names by qualified system path |
+| T18 Compact hierarchy | Pass for tested cases | Windows build 26300 at 175% scaling showed compact, aligned rows and a contrasting label highlight in the saved microgrid model. Selecting Chopper opened its diagram. Expanding and collapsing its parent preserved the current diagram. An egui regression test confirmed that the hierarchy scrolls near the panel's right edge even with short labels |
 | T21 File and recent models | Pass for tested cases | Tests cover persistence, equivalent-path deduplication, the ten-file limit, multiple app instances, failed opens, cancellation, and menu Esc handling. Native restart and recent-file selection passed |
 | T22 Help dialogs | Pass for tested cases | Native review and egui tests checked actual build metadata, explicit unavailable revision, offline license notices, and Esc handling |
 | T23 Dark theme | Not run in full | Native review confirmed the updated Simulink theme at 1200×800 and 740×460 logical pixels at 175% Windows scaling. The updated Stateflow theme and full display-scaling matrix remain pending |
 | T30 Startup screen | Pass for automated cases | Egui tests checked the description, license notice, copyright, timed transition to a loaded fixture, and PayPal action from the cup icon. Native visual review of the updated splash was not run |
+| T31 Signal net selection | Pass | Scene and egui tests verified nearest-wire picking, independent crossings, nested branches, endpoint markers, unresolved endpoints, and selection through pan and zoom. A local v0.2.0 release build on Windows build 26300 at 175% scaling highlighted the same net from the trunk and a branch of `dc_motor_speed_control.slx`, centered a destination, and cleared the selection on empty canvas. The fixture's SHA-256 was unchanged |
+| Shared model tabs and menu row | Pass for tested cases | Egui checked that overflow tabs can scroll into view while File and Help stay in place. Native review on Windows build 26300 at 175% scaling opened the motor fixture through File > Open Recent from the microgrid fixture, switched back to the first tab, and opened Help with both tabs visible |
 | Display scaling and performance | Not run | Display scaling matrix and reference-machine measurements remain pending |
 
 No failures remained in the final checks above. See [the design](slx_viewer_design.md#111-implementation-milestones) for the remaining milestones.

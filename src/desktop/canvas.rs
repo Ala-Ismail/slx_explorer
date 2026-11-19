@@ -1,10 +1,13 @@
 use eframe::egui::{
     Align2, Color32, Event, FontId, Key, Modifiers, MouseWheelUnit, Painter, PointerButton, Pos2,
-    Rect, Sense, Stroke, StrokeKind, Ui, Vec2, vec2,
+    Rect, Sense, Shape, Stroke, StrokeKind, Ui, Vec2, vec2,
 };
 use slx_viewer::model::System;
 
-use super::{scene::Scene, theme};
+use super::{
+    scene::{Scene, SignalNet},
+    theme,
+};
 
 const MIN_ZOOM: f32 = 0.1;
 const MAX_ZOOM: f32 = 8.0;
@@ -14,12 +17,20 @@ pub enum ViewAction {
     Fit,
     Reset,
     Scale(f32),
+    Center(Pos2),
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum Selection {
+    Block(usize),
+    Net(usize),
+    ChartObject(usize),
 }
 
 pub struct View {
     zoom: f32,
     center: Pos2,
-    pub selected: Option<usize>,
+    pub selected: Option<Selection>,
     pub action: Option<ViewAction>,
     pub reveal: Option<usize>,
     pan_primary: bool,
@@ -101,15 +112,20 @@ pub fn show(ui: &mut Ui, system: &System, scene: &Scene, view: &mut View) -> Opt
             bounds
         },
         reveal,
-        |point, _| {
+        |point, scale| {
             scene
                 .blocks
                 .iter()
                 .rposition(|bounds| bounds.is_some_and(|bounds| bounds.contains(point)))
+                .map(Selection::Block)
+                .or_else(|| scene.hit_net(point, scale).map(Selection::Net))
         },
     );
     paint(ui, &frame.painter, frame.rect, system, scene, view);
-    frame.enter.then_some(view.selected).flatten()
+    match view.selected {
+        Some(Selection::Block(block)) if frame.enter => Some(block),
+        _ => None,
+    }
 }
 
 pub(super) struct CanvasFrame {
@@ -123,7 +139,7 @@ pub(super) fn interact(
     view: &mut View,
     fit_bounds: impl FnOnce(&Painter) -> Rect,
     reveal: Option<Rect>,
-    hit: impl Fn(Pos2, f32) -> Option<usize>,
+    hit: impl Fn(Pos2, f32) -> Option<Selection>,
 ) -> CanvasFrame {
     let previous_zoom = view.zoom;
     let previous_selection = view.selected;
@@ -135,6 +151,7 @@ pub(super) fn interact(
         Some(ViewAction::Scale(factor)) => {
             view.zoom_to(view.zoom * factor, canvas.center(), canvas)
         }
+        Some(ViewAction::Center(point)) => view.center = point,
         None => {}
     }
     if let Some(bounds) = reveal {
@@ -210,14 +227,23 @@ pub(super) fn interact(
 fn paint(ui: &Ui, painter: &Painter, canvas: Rect, system: &System, scene: &Scene, view: &View) {
     let visuals = ui.visuals();
     let text = visuals.strong_text_color();
-    for path in &scene.wires {
-        for pair in path.windows(2) {
-            let start = view.screen(pair[0], canvas);
-            let end = view.screen(pair[1], canvas);
-            if canvas.intersects(Rect::from_two_pos(start, end)) {
-                painter.line_segment([start, end], Stroke::new(1.25, theme::WIRE));
-            }
+    let selected_net = match view.selected {
+        Some(Selection::Net(index)) => Some(index),
+        _ => None,
+    };
+    for (index, net) in scene.nets.iter().enumerate() {
+        if selected_net != Some(index) {
+            paint_net(painter, canvas, view, net, Stroke::new(1.25, theme::WIRE));
         }
+    }
+    if let Some(index) = selected_net {
+        paint_net(
+            painter,
+            canvas,
+            view,
+            &scene.nets[index],
+            Stroke::new(3.0, theme::FOCUS),
+        );
     }
     for (index, bounds) in scene.blocks.iter().enumerate() {
         let Some(bounds) = bounds.map(|bounds| view.screen_rect(bounds, canvas)) else {
@@ -226,7 +252,7 @@ fn paint(ui: &Ui, painter: &Painter, canvas: Rect, system: &System, scene: &Scen
         if !canvas.intersects(bounds) {
             continue;
         }
-        let selected = view.selected == Some(index);
+        let selected = view.selected == Some(Selection::Block(index));
         let stroke = if selected {
             Stroke::new(2.0, visuals.selection.stroke.color)
         } else {
@@ -293,6 +319,46 @@ fn paint(ui: &Ui, painter: &Painter, canvas: Rect, system: &System, scene: &Scen
             let at = view.screen(*at, canvas);
             if canvas.expand(100.0).contains(at) {
                 painter.text(at, Align2::CENTER_TOP, label, font.clone(), text);
+            }
+        }
+    }
+    if let Some(index) = selected_net {
+        let net = &scene.nets[index];
+        for &destination in net.destinations.iter().flatten() {
+            let at = view.screen(destination, canvas);
+            if canvas.expand(6.0).contains(at) {
+                painter.circle(at, 4.0, theme::OBJECT, Stroke::new(2.0, theme::FOCUS));
+            }
+        }
+        if let Some(source) = net.source {
+            let at = view.screen(source, canvas);
+            if canvas.expand(6.0).contains(at) {
+                painter.add(Shape::convex_polygon(
+                    vec![
+                        at + vec2(0.0, -6.0),
+                        at + vec2(6.0, 0.0),
+                        at + vec2(0.0, 6.0),
+                        at + vec2(-6.0, 0.0),
+                    ],
+                    theme::FOCUS,
+                    Stroke::NONE,
+                ));
+            }
+        }
+    }
+}
+
+fn paint_net(painter: &Painter, canvas: Rect, view: &View, net: &SignalNet, stroke: Stroke) {
+    let visible = canvas.expand(stroke.width / 2.0);
+    for path in &net.paths {
+        if !visible.intersects(view.screen_rect(path.bounds, canvas)) {
+            continue;
+        }
+        for pair in path.points.windows(2) {
+            let start = view.screen(pair[0], canvas);
+            let end = view.screen(pair[1], canvas);
+            if visible.intersects(Rect::from_two_pos(start, end)) {
+                painter.line_segment([start, end], stroke);
             }
         }
     }

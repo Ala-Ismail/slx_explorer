@@ -15,6 +15,7 @@ pub const MUTED: Color32 = Color32::from_rgb(0xB5, 0xB9, 0xC1);
 pub const WIRE: Color32 = Color32::from_rgb(0xD3, 0xD6, 0xDC);
 pub const OUTLINE: Color32 = Color32::from_rgb(0xA2, 0xA6, 0xAE);
 pub const FOCUS: Color32 = Color32::from_rgb(0x9A, 0xCA, 0xFF);
+pub const HIERARCHY_SELECTION: Color32 = Color32::from_rgb(0x41, 0x71, 0x9C);
 pub const BRAND: Color32 = Color32::from_rgb(0xF4, 0x9B, 0x44);
 pub const FUNCTION: Color32 = Color32::from_rgb(0xA7, 0xB9, 0xFF);
 
