@@ -28,15 +28,15 @@ Use a single page with anchor navigation for **Features**, **Download**, and **O
 
 Keep compatibility details near the feature list. Coverage is fixture-based. Some specialized blocks, external references, and Stateflow constructs have limited support. Link to the repository’s supported layouts and limits before making any broader compatibility claims.
 
-Follow the feature list with a [Windows app capture](public/assets/pid-control-capture.webp) of an illustrative PID speed-control model. Show the three parallel paths, the motor feedback loop, and the selected proportional gain with the stored value `Kp`. Provide a full-size image link alongside the caption.
+Follow the feature list with a [illustrative SLX Explorer preview](public/assets/pid-control-preview.webp) of an illustrative PID speed-control model. Show the three parallel paths, the motor feedback loop, and the selected proportional gain with the stored value `Kp`. Provide a full-size image link alongside the caption.
 
 ### 1.2.3 Download and get started
 
-Label the package **Windows x64 · ZIP · Unsigned executables**. Use the stable **Download for Windows x64** link so users receive the latest published package without a site update. Provide a **Release notes and SHA-256** link to the GitHub release page. GitHub Actions builds and publishes the ZIP and checksum. Explain near the download that Microsoft Defender SmartScreen may show **Windows protected your PC** and **Unknown publisher**, and that Smart App Control or managed Windows policy may block launch.
+Label the package **Windows x64 · ZIP · Unsigned executables**. Link **Download for Windows x64** to the latest GitHub release, where the Assets section lists the ZIP and checksum. Provide a **Download SHA-256 checksum** link to its checksum file. GitHub Actions builds and publishes the ZIP and checksum. Explain near the download that Microsoft Defender SmartScreen may show **Windows protected your PC** and **Unknown publisher**, and that Smart App Control or managed Windows policy may block launch.
 
-1. Download the ZIP and `SHA256SUMS.txt` from the same GitHub release.
-2. Calculate the ZIP's SHA-256 in PowerShell and compare it with the published digest. Tell users to stop and download both files again if the hashes differ.
-3. After a match, extract the ZIP and open `slx_viewer_desktop.exe`.
+1. Download the Windows x64 ZIP and `SHA256SUMS.txt` from the same GitHub release. New builds use `slx_explorer-windows-x64.zip`.
+2. Calculate the ZIP's SHA-256 in PowerShell and compare it with the published digest for the filename shown in the release. Tell users to stop and download both files again if the hashes differ.
+3. After a match, extract the ZIP and open `slx_explorer.exe`. Older releases use the filename `slx_viewer_desktop.exe`.
 4. Choose **File > Open…** or drop a local `.slx` file into the window.
 
 Explain that a match confirms the ZIP's integrity against the published digest. Link the hero download note to the verification instructions.
@@ -62,7 +62,7 @@ State in the footer that SLX Explorer is a clean-room implementation developed i
 
 ## 1.3 Visual and accessibility direction
 
-Use the desktop app’s folded orange ribbon mark, charcoal surfaces, a neutral grey diagram area, and restrained blue for focus and interactive highlights. Use the orange accent for the main download action. On desktop, place the hero copy beside the slideshow. On narrow screens, stack them with the download action above the first image. Use an unedited app capture for any feature walkthrough that needs legible interface text.
+Use the desktop app’s folded orange ribbon mark, charcoal surfaces, a neutral grey diagram area, and restrained blue for focus and interactive highlights. Use the orange accent for the main download action. On desktop, place the hero copy beside the slideshow. On narrow screens, stack them with the download action above the first image. Label the PID image as an illustrative preview. Use unedited app captures for step-by-step walkthroughs.
 
 Use a readable sans-serif stack, 16–18 px body text, and consistent spacing across sections. Give buttons enough room for touch and keyboard use. Provide descriptive image alt text, visible focus outlines, a single page heading, and sufficient text contrast. With JavaScript disabled, keep the first image and all page links available.
 
@@ -80,8 +80,8 @@ Use a consistent 3:2 crop and label the example diagrams as mock models. Advance
 
 | Label | Destination |
 | --- | --- |
-| Download for Windows x64 | [Latest Windows x64 ZIP](https://github.com/Ala-Ismail/slx_explorer/releases/latest/download/slx_viewer-windows-x64.zip) |
-| Release notes and SHA-256 | [Latest GitHub release](https://github.com/Ala-Ismail/slx_explorer/releases/latest) |
+| Download for Windows x64 | [Latest GitHub release assets](https://github.com/Ala-Ismail/slx_explorer/releases/latest) |
+| Download SHA-256 checksum | [Latest checksum file](https://github.com/Ala-Ismail/slx_explorer/releases/latest/download/SHA256SUMS.txt) |
 | All releases | [GitHub Releases](https://github.com/Ala-Ismail/slx_explorer/releases) |
 | View source on GitHub | [SLX Explorer repository](https://github.com/Ala-Ismail/slx_explorer) |
 | License | [MIT License](https://github.com/Ala-Ismail/slx_explorer/blob/main/LICENSE) |
@@ -102,12 +102,12 @@ The site is static HTML and CSS. Its page, stylesheet, favicon, and visual asset
 | Output Directory | `public` |
 | Production branch | `main` |
 
-Test the site on a Vercel preview deployment before promoting it. The Open Graph image uses the full HTTPS address on `slxviewer-website.vercel.app`. Verify the image and link preview after deploying. Keep binaries and checksums in GitHub Releases. Use the stable release link so app releases and site deployments can proceed independently. [Vercel build settings](https://vercel.com/docs/builds/configure-a-build)
+Test the site on a Vercel preview deployment before promoting it. The Open Graph image uses the full HTTPS address on `slxviewer-website.vercel.app`. Verify the image and link preview after deploying. Keep binaries and checksums in GitHub Releases. Use the stable release assets page so app releases and site deployments can proceed independently. [Vercel build settings](https://vercel.com/docs/builds/configure-a-build)
 
 ## 1.6 Acceptance
 
 - The first screen makes the app’s purpose, Windows x64 support, and download action clear. The layout is usable at 360, 768, and 1440 px widths.
-- The download link resolves to the latest published ZIP, and the release page provides a matching SHA-256 file. The instructions match the filenames in the ZIP.
+- The download link opens the latest release assets, where the Windows x64 ZIP and its SHA-256 file can be downloaded. The instructions match the filenames in the ZIP.
 - Source, license, compatibility, issues, and PayPal links resolve to their intended destinations. Confirm the PayPal destination without submitting a payment.
 - Verify keyboard navigation, visible focus, contrast, responsive image legibility, and page access without JavaScript. Check the slideshow’s wrapping order, pause control, and reduced-motion behavior.
 - Vercel serves the home page and static assets from `website/public/`. Metadata includes the site title, description, favicon, and a share image.

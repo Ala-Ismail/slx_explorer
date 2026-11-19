@@ -36,18 +36,18 @@ jobs:
       - name: Package executables and notices
         run: |
           New-Item -ItemType Directory -Path dist/package -Force | Out-Null
-          Copy-Item target/x86_64-pc-windows-msvc/release/slx_viewer_desktop.exe dist/package/
+          Copy-Item target/x86_64-pc-windows-msvc/release/slx_explorer.exe dist/package/
           Copy-Item target/x86_64-pc-windows-msvc/release/slx_viewer.exe dist/package/
           Copy-Item LICENSE, THIRD_PARTY_NOTICES.txt, README.md dist/package/
-          Compress-Archive -Path dist/package/* -DestinationPath dist/slx_viewer-windows-x64.zip
-          $hash = (Get-FileHash dist/slx_viewer-windows-x64.zip -Algorithm SHA256).Hash.ToLowerInvariant()
-          "$hash  slx_viewer-windows-x64.zip" | Set-Content dist/SHA256SUMS.txt -Encoding ascii
+          Compress-Archive -Path dist/package/* -DestinationPath dist/slx_explorer-windows-x64.zip
+          $hash = (Get-FileHash dist/slx_explorer-windows-x64.zip -Algorithm SHA256).Hash.ToLowerInvariant()
+          "$hash  slx_explorer-windows-x64.zip" | Set-Content dist/SHA256SUMS.txt -Encoding ascii
       - name: Upload Windows download
         uses: actions/upload-artifact@v4
         with:
-          name: slx_viewer-windows-x64
+          name: slx_explorer-windows-x64
           path: |
-            dist/slx_viewer-windows-x64.zip
+            dist/slx_explorer-windows-x64.zip
             dist/SHA256SUMS.txt
           if-no-files-found: error
           retention-days: 14
@@ -61,11 +61,11 @@ jobs:
     steps:
       - uses: actions/download-artifact@v4
         with:
-          name: slx_viewer-windows-x64
+          name: slx_explorer-windows-x64
           path: dist
       - name: Publish tagged release
         env:
           GH_TOKEN: ${{ github.token }}
           GH_REPO: ${{ github.repository }}
           RELEASE_TAG: ${{ github.ref_name }}
-        run: gh release create "$RELEASE_TAG" dist/slx_viewer-windows-x64.zip dist/SHA256SUMS.txt --verify-tag --title "SLX Viewer $RELEASE_TAG" --generate-notes
+        run: gh release create "$RELEASE_TAG" dist/slx_explorer-windows-x64.zip dist/SHA256SUMS.txt --verify-tag --title "SLX Explorer $RELEASE_TAG" --generate-notes

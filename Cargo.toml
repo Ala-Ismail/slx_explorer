@@ -3,7 +3,7 @@ name = "slx_viewer"
 version = "0.2.0"
 edition = "2024"
 license = "MIT"
-default-run = "slx_viewer_desktop"
+default-run = "slx_explorer"
 
 [dependencies]
 quick-xml = "0.41.0"

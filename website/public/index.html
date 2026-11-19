@@ -42,7 +42,7 @@
           <p class="hero-lead">An open-source Windows app for inspecting saved Simulink models.</p>
           <p class="hero-description">Browse diagrams, follow signals, and read stored block properties offline. Released under the MIT License.</p>
           <div class="actions">
-            <a class="button button-primary" href="https://github.com/Ala-Ismail/slx_explorer/releases/latest/download/slx_viewer-windows-x64.zip">Download for Windows x64</a>
+            <a class="button button-primary" href="https://github.com/Ala-Ismail/slx_explorer/releases/latest">Download for Windows x64</a>
             <a class="button button-secondary" href="https://github.com/Ala-Ismail/slx_explorer">View source</a>
           </div>
           <p class="download-note">Portable ZIP · <a href="#verify-download">Unsigned Windows app and checksum instructions</a></p>
@@ -106,8 +106,8 @@
         <p>Follow the proportional, integral, and derivative paths as they combine at the PID sum. The properties panel displays the selected gain as its stored expression, <code>Kp</code>.</p>
       </div>
       <figure class="model-capture">
-        <img src="assets/pid-control-capture.webp" width="1536" height="1024" alt="Desktop app showing an illustrative closed-loop PID diagram. Proportional, integral, and derivative branches feed a motor plant. The selected proportional gain is Kp." loading="lazy" decoding="async">
-        <figcaption>Windows app capture with an illustrative model. <a href="assets/pid-control-capture.webp">View full size</a></figcaption>
+        <img src="assets/pid-control-preview.webp" width="1536" height="1024" alt="SLX Explorer preview showing a closed-loop PID diagram. Proportional, integral, and derivative branches feed a motor plant. The selected proportional gain is Kp." loading="lazy" decoding="async">
+        <figcaption>Illustrative SLX Explorer preview. <a href="assets/pid-control-preview.webp">View full size</a></figcaption>
       </figure>
     </section>
 
@@ -117,8 +117,8 @@
           <h2 id="download-title">Download SLX Explorer</h2>
           <p class="package-label">Windows x64 · ZIP · Unsigned executables</p>
           <div class="actions download-actions">
-            <a class="button button-primary" href="https://github.com/Ala-Ismail/slx_explorer/releases/latest/download/slx_viewer-windows-x64.zip">Download for Windows x64</a>
-            <a class="text-link" href="https://github.com/Ala-Ismail/slx_explorer/releases/latest">Release notes and SHA-256</a>
+            <a class="button button-primary" href="https://github.com/Ala-Ismail/slx_explorer/releases/latest">Download for Windows x64</a>
+            <a class="text-link" href="https://github.com/Ala-Ismail/slx_explorer/releases/latest/download/SHA256SUMS.txt">Download SHA-256 checksum</a>
           </div>
           <p class="windows-warning">Microsoft Defender SmartScreen may show <strong>Windows protected your PC</strong> and list the publisher as <strong>Unknown publisher</strong>. Smart App Control or your organization’s Windows policy may block the app. <a href="https://learn.microsoft.com/windows/apps/package-and-deploy/smartscreen-reputation">Microsoft’s SmartScreen guidance</a></p>
           <div class="download-support">
@@ -129,13 +129,13 @@
         <div class="setup">
           <h3>Get started</h3>
           <ol>
-            <li>Download the ZIP and <code>SHA256SUMS.txt</code> from the same GitHub release.</li>
+            <li>Under <strong>Assets</strong>, download the Windows x64 ZIP and <code>SHA256SUMS.txt</code> from the same release. New builds use <code>slx_explorer-windows-x64.zip</code>.</li>
             <li id="verify-download">
-              Open PowerShell in the download folder and calculate the ZIP’s SHA-256.
-              <pre><code>Get-FileHash -LiteralPath .\slx_viewer-windows-x64.zip -Algorithm SHA256</code></pre>
-              Compare the <code>Hash</code> result with the hash beside <code>slx_viewer-windows-x64.zip</code> in <code>SHA256SUMS.txt</code>. Letter case can differ. If the hashes differ, stop and download both files again from the same release.
+              Open PowerShell in the download folder and calculate the ZIP’s SHA-256. If your ZIP has a different filename, substitute it in the command.
+              <pre><code>Get-FileHash -LiteralPath .\slx_explorer-windows-x64.zip -Algorithm SHA256</code></pre>
+              Compare the <code>Hash</code> result with the hash beside your ZIP’s filename in <code>SHA256SUMS.txt</code>. Letter case can differ. If the hashes differ, stop and download both files again from the same release.
             </li>
-            <li>Once the hashes match, extract the ZIP and run <code>slx_viewer_desktop.exe</code>.</li>
+            <li>Once the hashes match, extract the ZIP and run <code>slx_explorer.exe</code>. Older releases use the filename <code>slx_viewer_desktop.exe</code>.</li>
             <li>Choose <strong>File &gt; Open…</strong> or drop an <code>.slx</code> file into the window.</li>
           </ol>
           <p class="checksum-note">A matching checksum confirms that the ZIP matches the published digest. Windows still applies its security checks.</p>

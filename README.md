@@ -1,8 +1,8 @@
 # 1. SLX Viewer
 
-**Windows x64** · [Download latest release](https://github.com/Ala-Ismail/slx_viewer/releases/latest/download/slx_viewer-windows-x64.zip) · [Release notes and checksums](https://github.com/Ala-Ismail/slx_viewer/releases) · [GitHub Actions builds](https://github.com/Ala-Ismail/slx_viewer/actions/workflows/windows.yml)
+**Windows x64** · [Download latest release](https://github.com/Ala-Ismail/slx_explorer/releases/latest) · [Release notes and checksums](https://github.com/Ala-Ismail/slx_explorer/releases) · [GitHub Actions builds](https://github.com/Ala-Ismail/slx_explorer/actions/workflows/windows.yml)
 
-The Windows executables are unsigned. [Verify the ZIP checksum and read about Windows warnings](#123-verify-the-windows-download) before extracting and running `slx_viewer_desktop.exe`. The ZIP also includes `slx_viewer.exe` for command-line summaries.
+The Windows executables are unsigned. [Verify the ZIP checksum and read about Windows warnings](#123-verify-the-windows-download) before extracting and running the desktop app. The ZIP also includes `slx_viewer.exe` for command-line summaries.
 
 ## 1.1 Overview
 
@@ -26,7 +26,7 @@ To compile from source, install Rust and Cargo for the `x86_64-pc-windows-msvc` 
 cargo build --release --locked
 ```
 
-The desktop build produces `target\release\slx_viewer_desktop.exe`. You can copy the executable to another folder and launch it there. It uses the Windows OpenGL graphics driver and links the C runtime into the executable. Cargo uses the dependency versions in `Cargo.lock`. If those dependencies are already cached, you can build offline with `cargo build --release --locked --offline`.
+The desktop build produces `target\release\slx_explorer.exe`. You can copy the executable to another folder and launch it there. It uses the Windows OpenGL graphics driver and links the C runtime into the executable. Cargo uses the dependency versions in `Cargo.lock`. If those dependencies are already cached, you can build offline with `cargo build --release --locked --offline`.
 
 If a running viewer has the release executable locked, use `cargo build --release --locked --target-dir target/stateflow` to build the binaries under `target\stateflow\release`.
 
@@ -38,13 +38,13 @@ Dependency and font notices are embedded in the executable and shown under **Hel
 
 The **Windows build** workflow runs on pushes to `main`, pull requests, version tags (`v*`), and manual dispatch. It checks formatting, Clippy, and tests before building Windows x64 release executables with the locked dependencies.
 
-Open the repository's **Actions > Windows build**, select a successful run, and download **slx_viewer-windows-x64** under **Artifacts**. Extract the outer artifact to get `slx_viewer-windows-x64.zip` and `SHA256SUMS.txt`, then verify the inner ZIP using section 1.2.3. Artifacts are retained for 14 days.
+Open the repository's **Actions > Windows build**, select a successful run, and download **slx_explorer-windows-x64** under **Artifacts**. Extract the outer artifact to get `slx_explorer-windows-x64.zip` and `SHA256SUMS.txt`, then verify the inner ZIP using section 1.2.3. Artifacts are retained for 14 days.
 
 To publish a release, commit the new version in `Cargo.toml` and `Cargo.lock` on `main`. Create an annotated tag matching that version and push the branch and tag together. Substitute the version you are releasing for `X.Y.Z`.
 
 ```powershell
 $tag = 'vX.Y.Z'
-git tag -a $tag -m "SLX Viewer $tag"
+git tag -a $tag -m "SLX Explorer $tag"
 git push --atomic origin main "refs/tags/$tag"
 ```
 
@@ -52,25 +52,25 @@ A successful tagged build creates a GitHub Release with the ZIP and SHA-256 chec
 
 ### 1.2.3 Verify the Windows download
 
-1. Download `slx_viewer-windows-x64.zip` and `SHA256SUMS.txt` from the same GitHub release. [Latest GitHub release](https://github.com/Ala-Ismail/slx_viewer/releases/latest)
-2. Open PowerShell in the download folder and calculate the ZIP's SHA-256. [Microsoft Get-FileHash documentation](https://learn.microsoft.com/en-us/powershell/module/microsoft.powershell.utility/get-filehash?view=powershell-5.1)
+1. Under **Assets**, download the Windows x64 ZIP and `SHA256SUMS.txt` from the same release. New builds use `slx_explorer-windows-x64.zip`. [Latest GitHub release](https://github.com/Ala-Ismail/slx_explorer/releases/latest)
+2. Open PowerShell in the download folder and calculate the ZIP's SHA-256. If your ZIP has a different filename, substitute it in the command. [Microsoft Get-FileHash documentation](https://learn.microsoft.com/en-us/powershell/module/microsoft.powershell.utility/get-filehash?view=powershell-5.1)
 
    ```powershell
-   Get-FileHash -LiteralPath .\slx_viewer-windows-x64.zip -Algorithm SHA256
+   Get-FileHash -LiteralPath .\slx_explorer-windows-x64.zip -Algorithm SHA256
    ```
 
-3. Compare the `Hash` result with the hash beside `slx_viewer-windows-x64.zip` in `SHA256SUMS.txt`. Letter case can differ. If the hashes differ, stop and download both files again from the same release.
-4. Once the hashes match, extract the ZIP and run `slx_viewer_desktop.exe`.
+3. Compare the `Hash` result with the hash beside your ZIP's filename in `SHA256SUMS.txt`. Letter case can differ. If the hashes differ, stop and download both files again from the same release.
+4. Once the hashes match, extract the ZIP and run `slx_explorer.exe`. Older releases use the filename `slx_viewer_desktop.exe`.
 
 A matching checksum confirms that the ZIP matches the published digest. The desktop and command-line executables are unsigned. Microsoft Defender SmartScreen may show **Windows protected your PC** and list the publisher as **Unknown publisher**. Smart App Control or your organization's Windows policy may block the app. [Microsoft SmartScreen guidance](https://learn.microsoft.com/windows/apps/package-and-deploy/smartscreen-reputation)
 
 ## 1.3 Open a model
 
-Double-click `slx_viewer_desktop.exe`. The startup screen shows the SLX Viewer logo, open-source MIT and copyright notices, and **Buy us a coffee** for 1.8 seconds before revealing the viewer. Choose **File > Open…** or press **Ctrl+O**, then select a local `.slx` file. To try the viewer, select `tests\fixtures\dc_motor_speed_control.slx` from the repository. You can also drop a model on the window, or provide a path when launching the app. Launch arguments begin loading during the startup screen.
+Double-click the desktop executable. The startup screen shows the SLX Viewer logo, open-source MIT and copyright notices, and **Buy us a coffee** for 1.8 seconds before revealing the viewer. Choose **File > Open…** or press **Ctrl+O**, then select a local `.slx` file. To try the viewer, select `tests\fixtures\dc_motor_speed_control.slx` from the repository. You can also drop a model on the window, or provide a path when launching the app. Launch arguments begin loading during the startup screen.
 
 ```powershell
-.\target\release\slx_viewer_desktop.exe
-.\target\release\slx_viewer_desktop.exe "C:\Models\My Model.slx"
+.\target\release\slx_explorer.exe
+.\target\release\slx_explorer.exe "C:\Models\My Model.slx"
 ```
 
 Use **Fit**, **−**, the zoom percentage, and **+** at the bottom right to control the current diagram. Clicking the percentage resets zoom to 100%. **Ctrl+wheel** zooms around the pointer. Long status messages truncate to keep these controls visible; hover over the message to read it in full.

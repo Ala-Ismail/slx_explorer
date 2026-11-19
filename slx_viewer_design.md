@@ -69,6 +69,8 @@ Stored parameter values are displayed as text. For example, a gain saved as `Kp`
 
 `quick-xml` provides a streaming reader suitable for processing individual package parts. See the [quick-xml documentation](https://docs.rs/quick-xml/latest/quick_xml/).
 
+The default Cargo binary target is `slx_explorer`, which builds `slx_explorer.exe` on Windows. The command-line target is `slx_viewer`.
+
 Use a worker thread and channels for loading. An asynchronous runtime is unnecessary for the initial local-file workflow. Pin compatible dependency versions and commit `Cargo.lock` when implementation starts. Select and test an eframe graphics backend on the intended Windows machines before finalizing distribution.
 
 ## 1.5 SLX compatibility strategy
